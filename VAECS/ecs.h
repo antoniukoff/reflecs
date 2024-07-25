@@ -15,10 +15,6 @@ constexpr size_t MAX_COMPONENTS_SIZE = 32;
 constexpr size_t MAX_ENTITIES = 10;
 constexpr size_t CONTAINER_SIZE = MAX_ENTITIES + 1;
 
-/////////////////////////////////
-//  COMPONENT DEFINITION
-/////////////////////////////////
-
 template<typename ComponentType>
 struct GetMemberCount;
 
@@ -33,6 +29,10 @@ struct GetPointerToMemeberType
 
 template<typename T, size_t N>
 static typename GetPointerToMemeberType<T, N>::Type getPointerToMemeber() {};
+	
+/////////////////////////////////
+//  COMPONENT DEFINITION
+/////////////////////////////////
 
 struct Component
 {
@@ -68,14 +68,12 @@ template<> struct GetType<Component, 3>
 	using Type = int;
 };
 
-
 template<> typename GetPointerToMemeberType<Component, 0>::Type getPointerToMemeber<Component, 0>() { return &Component::x; }
 template<> typename GetPointerToMemeberType<Component, 1>::Type getPointerToMemeber<Component, 1>() { return &Component::y; }
 template<> typename GetPointerToMemeberType<Component, 2>::Type getPointerToMemeber<Component, 2>() { return &Component::w; }
 template<> typename GetPointerToMemeberType<Component, 3>::Type getPointerToMemeber<Component, 3>() { return &Component::h; }
+
 ////////////////////////////////////
-
-
 
 
 template<typename C, size_t elements>
@@ -148,10 +146,12 @@ private:
 		std::cout 
 			<< "Type: "
 			<< typeid(DataType).name()
-			<<", type size: " 
+			<<", Type size: " 
 			<< sizeof(DataType)
-			<< ", offset from the previos data member: "
+			<< " bytes"
+			<< ", Previos data type offset: "
 			<< byteCount
+			<< " bytes"
 			<< '\n';
 	}
 
@@ -182,20 +182,20 @@ private:
 	template<size_t index>
 	struct AddComponentDataWrappers
 	{
-		void operator()(ComponentManager<C>* mgr, ComponentInstance inst, C& data)
+		void operator()(ComponentManager<C>* mgr, ComponentInstance instanceToAdd, C& component)
 		{
-			mgr->addComponentData<index>(inst, data);
+			mgr->addComponentData<index>(instanceToAdd, component);
 		}
 	};
 	
 	template<size_t index>
-	void addComponentData(ComponentInstance instanceToAdd, C& data)
+	void addComponentData(ComponentInstance instanceToAdd, C& component)
 	{
 		using DataType = GetType<C, index>::Type;
 
 		std::array<DataType, CONTAINER_SIZE>& arrayHandle = *static_cast<std::array<DataType, CONTAINER_SIZE>*>(m_component_pool.buffer[index]);
 		
-		arrayHandle[instanceToAdd] = data.*getPointerToMemeber<C, index>();
+		arrayHandle[instanceToAdd] = component.*getPointerToMemeber<C, index>();
 	}
 
 	template<size_t index>
@@ -217,6 +217,7 @@ private:
 		ComponentInstance lastInstance = m_component_pool.size - 1;
 		arrayHandle[instanceToRemove]  = arrayHandle[lastInstance];
 	}
+
 
 
 #pragma endregion
