@@ -7,7 +7,7 @@ namespace CompileLoop
 	struct ForEach
 	{
 		template<size_t index>
-		static void execute(Parent* parent, Args&& ... args)
+		static void loop(Parent* parent, Args&& ... args)
 		{
 			if constexpr (index >= numberofiterations)
 			{
@@ -19,21 +19,22 @@ namespace CompileLoop
 
 				wrapper(parent, args...);
 
-				ForEach<numberofiterations, FunctionToExecuteWrapperClass, Parent, Args ...>::template execute<index + 1>(parent, args...);
+				ForEach<numberofiterations, FunctionToExecuteWrapperClass, Parent, Args ...>::template loop<index + 1>(parent, args...);
 			}
 		}
 	};
 
 	template<size_t numberofiterations, template<size_t N> typename FunctionToExecuteWrapperClass, typename Parent, typename ... Args>
-	void loop(Parent* parent, Args&& ... args)
+	void execute(Parent* parent, Args&& ... args)
 	{
-		ForEach<numberofiterations, FunctionToExecuteWrapperClass, Parent, Args...>::template execute<0>(parent, args...);
+		ForEach<numberofiterations, FunctionToExecuteWrapperClass, Parent, Args...>::template loop<0>(parent, args...); // index of starting Pos?
 	}
 }
 
 ///////////////////////////////////////////////////////
 ///						TESTS
 ///////////////////////////////////////////////////////
+
 struct PrintMessages
 {
 private:
@@ -72,13 +73,13 @@ public:
 	template<size_t numofIter>
 	void printMessages(std::string messageToPrint)
 	{
-		CompileLoop::loop<numofIter, PrintMessagesWrapper>(this, messageToPrint);
+		CompileLoop::execute<numofIter, PrintMessagesWrapper>(this, messageToPrint);
 	}
 
 	template<size_t numofIter>
 	void printNumbers(size_t numbers)
 	{
-		CompileLoop::loop<numofIter, PrintNumberWrapper>(this, numbers);
+		CompileLoop::execute<numofIter, PrintNumberWrapper>(this, numbers);
 	}
 };
 
