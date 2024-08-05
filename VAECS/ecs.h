@@ -7,12 +7,13 @@
 #include <assert.h>
 #include <functional>
 #include <SDL.h>
+#include <type_traits>
 
 using EntityID = std::size_t;
 using ComponentInstance = std::size_t;
 
 constexpr size_t MAX_COMPONENTS_SIZE = 32;
-constexpr size_t MAX_ENTITIES = 10;
+constexpr size_t MAX_ENTITIES = 5000;
 constexpr size_t CONTAINER_SIZE = MAX_ENTITIES + 1;
 
 template<typename ComponentType>
@@ -34,7 +35,30 @@ static typename GetPointerToMemeberType<T, N>::Type getPointerToMemeber() {};
 //  COMPONENT DEFINITION
 /////////////////////////////////
 
-struct Component
+struct ComponentCounter
+{
+	static int counter;
+};
+
+int ComponentCounter::counter = 0;
+
+template<typename C>
+struct BaseComponent
+{
+	static inline int family()
+	{
+		static int family = ComponentCounter::counter++;
+		return family;
+	}
+};
+
+template<typename C>
+static int getComponentFamily()
+{
+	return BaseComponent<typename std::remove_const<C>::type>::family();
+}
+
+struct Component 
 {
 	/// Data
 	int x = {};
@@ -73,50 +97,75 @@ template<> typename GetPointerToMemeberType<Component, 1>::Type getPointerToMeme
 template<> typename GetPointerToMemeberType<Component, 2>::Type getPointerToMemeber<Component, 2>() { return &Component::w; }
 template<> typename GetPointerToMemeberType<Component, 3>::Type getPointerToMemeber<Component, 3>() { return &Component::h; }
 
+struct Color
+{
+	/// Data
+	char r = {};
+	char g = {};
+	char b = {};
+	char a = {};
+};
+
+template<> struct GetMemberCount<Color>
+{
+	static const size_t count = 4;
+};
+
+template<> struct GetType<Color, 0>
+{
+	using Type = char;
+};
+
+template<> struct GetType<Color, 1>
+{
+	using Type = char;
+};
+
+template<> struct GetType<Color, 2>
+{
+	using Type = char;
+};
+
+template<> struct GetType<Color, 3>
+{
+	using Type = char;
+};
+
+template<> typename GetPointerToMemeberType<Color, 0>::Type getPointerToMemeber<Color, 0>() { return &Color::r; }
+template<> typename GetPointerToMemeberType<Color, 1>::Type getPointerToMemeber<Color, 1>() { return &Color::g; }
+template<> typename GetPointerToMemeberType<Color, 2>::Type getPointerToMemeber<Color, 2>() { return &Color::b; }
+template<> typename GetPointerToMemeberType<Color, 3>::Type getPointerToMemeber<Color, 3>() { return &Color::a; }
+
 ////////////////////////////////////
+
 
 
 template<typename C, size_t elements>
 struct ComponentData
 {
 	size_t size = 1; //  first available element in the array starts at 1; 0 reserved for error handling
-	void* buffer[elements] ;
+	void* buffer[elements];
 };
+
+#include "utils.h"
 
 /// <summary>
 /// This class will hold the component pool and manage
 /// the assignment of an entity to the available slot as well as its removal from the pool
 /// </summary>
 /// <typeparam name="C">Component Type</typeparam>
-/// 
-template<typename C>
-class ComponentManager;
-
-//template<typename C>
-//class ComponentHandle
-//{
-//	EntityID owner;
-//	C& component;
-//	ComponentManager<C>& mgr;
-//
-//	ComponentHandle(ComponentManager<C>& mgr, ComponentInstance inst, EntityID eID)
-//		: owner(eID)
-//		, component(mgr.getComponent(eID))
-//		, mgr(mgr)
-//	{}
-//
-//	void destroy()
-//	{
-//		mgr->removeComponent(owner);
-//	}
-//};
-
-
-
-#include "utils.h"
 
 template<typename C>
-class ComponentManager
+class ComponentHandle;
+
+class BaseComponentManager
+{
+public:
+	virtual ~BaseComponentManager() = default;
+};
+
+template<typename C>
+class ComponentManager : public BaseComponentManager
 {
 public:
 
@@ -143,16 +192,7 @@ private:
 		char* currentAddress  = (char*)buffer[index + 1];
 
 		size_t byteCount = currentAddress - previousAddress; // debugging
-		std::cout 
-			<< "Type: "
-			<< typeid(DataType).name()
-			<<", Type size: " 
-			<< sizeof(DataType)
-			<< " bytes"
-			<< ", Previos data type offset: "
-			<< byteCount
-			<< " bytes"
-			<< '\n';
+		assert(byteCount == sizeof(DataType) * CONTAINER_SIZE && "Check member offset");
 	}
 
 	template<size_t index>
@@ -226,14 +266,12 @@ public:
 	template<typename ... Args>
 	ComponentInstance& addComponent(EntityID eID, Args&& ... args)
 	{
+		//Step 1: Loop throght all the member
+		//Step 2: Cast it to the std::array of the member type by their index
+		//Step 3: Update the value in the field pool by dereferencing pointer-to-member
+		//Step 4: Update the map and increase the size count
+
 		ComponentInstance new_instance = m_component_pool.size;
-
-
-		// Step 1: Loop throght all the member
-		// Step 2: Cast it to the std::array of the member type by their index
-		// Step 3: Update the value in the field pool by dereferencing pointer-to-member
-		// Step 4: Update the map and increase the size count
-		
 		C component = C(std::forward<Args>(args)...);
 		CompileLoop::execute<MEMBER_COUNT, AddComponentDataWrappers>(this, new_instance, component);
 
@@ -244,11 +282,16 @@ public:
 
 	ComponentInstance lookUp(EntityID eID)
 	{
-		return m_entities_to_components[eID]; 
+		return m_entities_to_components[eID];
+	}
+
+	ComponentHandle<C> getComponent(EntityID eID)
+	{
+		return ComponentHandle<C>(*this, eID);
 	}
 
 	template<size_t index>
-	GetType<C, index>::Type& getComponent(EntityID eID)
+	typename GetType<C, index>::Type& getMemberBuffer(EntityID eID)
 	{
 		ComponentInstance component_index = lookUp(eID);
 		using DataType = GetType<C, index>::Type;
@@ -302,8 +345,48 @@ private:
 	std::unordered_map<EntityID, ComponentInstance> m_entities_to_components;
 };
 
+template<typename C>
+class ComponentHandle;
 
-//
+template<>
+class ComponentHandle<Component>
+{
+public:
+	/// Data
+	int& x;
+	int& y;
+	int& w;
+	int& h;
+
+public:
+	ComponentHandle(ComponentManager<Component>& mgr, EntityID eID)
+		: x(mgr.getMemberBuffer<0>(eID))
+		, y(mgr.getMemberBuffer<1>(eID))
+		, w(mgr.getMemberBuffer<2>(eID))
+		, h(mgr.getMemberBuffer<3>(eID))
+	{}
+};
+
+template<>
+class ComponentHandle<Color>
+{
+public:
+	/// Data
+	char& r;
+	char& g;
+	char& b;
+	char& a;
+
+public:
+	ComponentHandle(ComponentManager<Color>& mgr, EntityID eID)
+		: r(mgr.getMemberBuffer<0>(eID))
+		, g(mgr.getMemberBuffer<1>(eID))
+		, b(mgr.getMemberBuffer<2>(eID))
+		, a(mgr.getMemberBuffer<3>(eID))
+	{}
+};
+
+
 //class EntityManager
 //{
 //};
@@ -340,58 +423,71 @@ private:
 //
 //};
 //
+
 EntityID generateID()
 {
 	static size_t new_id = 0;
 	return new_id++;
 }
+
 //
 //struct EntityHandle
 //{
-//	World* world;
+//
+//	class World* world;
 //	EntityID e_id;
 //
 //	void destroy()
 //	{
-//		world->destroy(e_id);
+//		//world->destroy(e_id);
 //	}
 //
-//	template<typename C>
-//	void addComponent(C component)
+//	template<typename C, typename ... Args>
+//	void addComponent(Args&& ... args)
 //	{
-//		world->addComponent<C>(e_id, component);
+//		//world->addComponent<C>(e_id, args...;);
 //	}
 //
 //	template<typename C>
 //	void removeComponent()
 //	{
-//		world->removeComponent<C>(e_id);
+//		//world->removeComponent<C>(e_id);
 //	}
 //
 //};
 
 #include <random>
 
-void drawRectangle(SDL_Renderer* renderer, EntityID eID, ComponentManager<Component>& mgr)
+void drawRectangle(SDL_Renderer* renderer, EntityID eID, ComponentManager<Component>& tMgr, ComponentManager<Color>& cMgr)
 {
-	int x = mgr.getComponent<0>(eID);
-	int y = mgr.getComponent<1>(eID);
-	int w = mgr.getComponent<2>(eID);
-	int h = mgr.getComponent<3>(eID);
+	ComponentHandle<Component> t = tMgr.getComponent(eID);
+	ComponentHandle<Color> cm = cMgr.getComponent(eID);
 
-	SDL_Rect rect{ x,y,w,h };
+	SDL_Rect rect{
+		.x = t.x,
+		.y = t.y,
+		.w = t.w,
+		.h = t.h
+	};
+
+
+	SDL_SetRenderDrawColor(renderer, cm.r, cm.g, cm.b, cm.a);
 	SDL_RenderFillRect(renderer, &rect);
 }
 
-EntityID generateEntityWithRectangle(ComponentManager<Component>& mgr)
+EntityID generateEntityWithRectangle(ComponentManager<Component>& mgr, ComponentManager<Color>& cMgr)
 {
 	EntityID id = generateID();
-	std::random_device randomEngine;
-	std::uniform_real_distribution<float> randomGenerator(0, 800);
+	static std::random_device randomEngine;
+	static std::uniform_real_distribution<float> randomGenerator(0, 800);
+
+	static std::random_device randomEngine1;
+	static std::uniform_int_distribution<int> randomGenerator1(0, 255);
 
 	int randPosX = randomGenerator(randomEngine);
 	int randPosY = randomGenerator(randomEngine);
-	mgr.addComponent(id, randPosX, randPosY, 50, 50);
+	mgr.addComponent(id, randPosX, randPosY > 600 ? 600 : randPosY, 50, 50);
+	cMgr.addComponent(id, randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1));
 	return id;
 }
 
@@ -403,16 +499,19 @@ int main(int argc, char* argv[])
 
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-	ComponentManager<Component> c_manager;
+	ComponentManager<Component> tManager;
+	ComponentManager<Color> cManager;
+
 	std::vector<EntityID> entityVec;
 
-	entityVec.push_back(generateEntityWithRectangle(c_manager));
-	entityVec.push_back(generateEntityWithRectangle(c_manager));
-	entityVec.push_back(generateEntityWithRectangle(c_manager));
-	entityVec.push_back(generateEntityWithRectangle(c_manager));
-	entityVec.push_back(generateEntityWithRectangle(c_manager));
+	entityVec.push_back(generateEntityWithRectangle(tManager, cManager));
+	entityVec.push_back(generateEntityWithRectangle(tManager, cManager));
+	entityVec.push_back(generateEntityWithRectangle(tManager, cManager));
+	entityVec.push_back(generateEntityWithRectangle(tManager, cManager));
+	entityVec.push_back(generateEntityWithRectangle(tManager, cManager));
 
 	bool running = true;
+
 	while (running)
 	{
 		SDL_Event event;
@@ -422,14 +521,17 @@ int main(int argc, char* argv[])
 			{
 				running = false;
 			}
+			if (event.key.keysym.sym == SDLK_1)
+			{
+				entityVec.push_back(generateEntityWithRectangle(tManager, cManager));
+			}
 		}
 
 		SDL_RenderClear(renderer);
 
 		for (auto entity : entityVec)
 		{
-			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-			drawRectangle(renderer, entity, c_manager);
+			drawRectangle(renderer, entity, tManager, cManager);
 		}
 		SDL_SetRenderDrawColor(renderer, 54, 136, 177, 255);
 		
