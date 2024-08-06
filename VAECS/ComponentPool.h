@@ -148,21 +148,21 @@ public:
 
 	std::optional<ComponentHandle<C>> getComponent(EntityID eID)
 	{
-		if (lookUp(eID) == 0)
+		if (ComponentInstance instance = lookUp(eID); instance > 0)
 		{
-			return std::nullopt;
+			return ComponentHandle<C>(*this, instance);
+
 		}
-		return ComponentHandle<C>(*this, eID);
+		return std::nullopt;
 	}
 
 	template<size_t index>
-	typename GetType<C, index>::Type& getMemberBuffer(EntityID eID)
+	typename GetType<C, index>::Type& getMemberBuffer(ComponentInstance componentInstance)
 	{
-		ComponentInstance component_index = lookUp(eID);
 		using DataType = GetType<C, index>::Type;
 
 		std::array<DataType, CONTAINER_SIZE>& arr = *static_cast<std::array<DataType, CONTAINER_SIZE>*>(m_component_pool.buffer[index]);
-		return arr[component_index];
+		return arr[componentInstance];
 	}
 
 	void removeComponent(EntityID eID)
@@ -229,11 +229,11 @@ public:
 public:
 	ComponentHandle() = default;
 
-	ComponentHandle(ComponentPool<Transform>& mgr, EntityID eID)
-		: x(mgr.getMemberBuffer<0>(eID))
-		, y(mgr.getMemberBuffer<1>(eID))
-		, w(mgr.getMemberBuffer<2>(eID))
-		, h(mgr.getMemberBuffer<3>(eID))
+	ComponentHandle(ComponentPool<Transform>& mgr, ComponentInstance instance)
+		: x(mgr.getMemberBuffer<0>(instance))
+		, y(mgr.getMemberBuffer<1>(instance))
+		, w(mgr.getMemberBuffer<2>(instance))
+		, h(mgr.getMemberBuffer<3>(instance))
 	{}
 };
 
@@ -250,11 +250,11 @@ public:
 public:
 	ComponentHandle() = default;
 
-	ComponentHandle(ComponentPool<Color>& mgr, EntityID eID)
-		: r(mgr.getMemberBuffer<0>(eID))
-		, g(mgr.getMemberBuffer<1>(eID))
-		, b(mgr.getMemberBuffer<2>(eID))
-		, a(mgr.getMemberBuffer<3>(eID))
+	ComponentHandle(ComponentPool<Color>& mgr, ComponentInstance instance)
+		: r(mgr.getMemberBuffer<0>(instance))
+		, g(mgr.getMemberBuffer<1>(instance))
+		, b(mgr.getMemberBuffer<2>(instance))
+		, a(mgr.getMemberBuffer<3>(instance))
 	{}
 };
 #pragma endregion

@@ -15,24 +15,6 @@ public:
 		createComponentPools<Ts...>();
 	}
 
-	template<typename Head, typename ... Tails>
-	void createComponentPools()
-	{
-		/// Assert that the given component is inhereting from the base
-		static_assert(std::is_base_of<BaseComponent<Head>, Head>::value == true && "The template argument is not inhereting from BaseComponent");
-		
-		componentPools[getComponentFamily<Head>()] = std::make_unique<ComponentPool<Head>>();
-
-		if constexpr (sizeof...(Tails) < 1)
-		{
-			return;
-		}
-		else
-		{
-			createComponentPools<Tails...>();
-		}
-	}
-
 	void init()
 	{
 		/// Create systems and the components required to operate before init
@@ -59,13 +41,6 @@ public:
 		/// Remove from the component managers
 		/// Remove from the systems
 		/// Give back the ID to the enetity Managers queue
-	}
-	
-	template<typename C>
-	std::optional<ComponentHandle<C>> createHandle(EntityID eID)
-	{
-		ComponentPool<C>* mgr = static_cast<ComponentPool<C>*>(componentPools[getComponentFamily<C>()].get());
-		return mgr->getComponent(eID);
 	}
 
 	template<typename C, typename ... Cs>
@@ -99,6 +74,31 @@ public:
 
 		ComponentPool<C>* mgr = static_cast<ComponentPool<C>*>(componentPools[getComponentFamily<C>()].get());
 		mgr->removeComponent(eID);
+	}
+private:
+	template<typename Head, typename ... Tails>
+	void createComponentPools()
+	{
+		/// Assert that the given component is inhereting from the base
+		static_assert(std::is_base_of<BaseComponent<Head>, Head>::value == true && "The template argument is not inhereting from BaseComponent");
+
+		componentPools[getComponentFamily<Head>()] = std::make_unique<ComponentPool<Head>>();
+
+		if constexpr (sizeof...(Tails) < 1)
+		{
+			return;
+		}
+		else
+		{
+			createComponentPools<Tails...>();
+		}
+	}
+
+	template<typename C>
+	std::optional<ComponentHandle<C>> createHandle(EntityID eID)
+	{
+		ComponentPool<C>* mgr = static_cast<ComponentPool<C>*>(componentPools[getComponentFamily<C>()].get());
+		return mgr->getComponent(eID);
 	}
 
 private:
