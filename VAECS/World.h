@@ -39,7 +39,6 @@ public:
 		/// Create entities before the init 
 		/// In the init once bothe are created tie the `entities to the systems based on their set of components
 		/// And if they match the systems requirements
-
 	}
 
 	EntityID createEntity()
@@ -63,7 +62,7 @@ public:
 	}
 	
 	template<typename C>
-	ComponentHandle<C> createHandle(EntityID eID)
+	std::optional<ComponentHandle<C>> createHandle(EntityID eID)
 	{
 		ComponentPool<C>* mgr = static_cast<ComponentPool<C>*>(componentPools[getComponentFamily<C>()].get());
 		return mgr->getComponent(eID);
@@ -78,10 +77,7 @@ public:
 		}
 		else
 		{
-			return std::tuple_cat(
-				std::make_tuple(createHandle<C>(eID)),
-				unpack<Cs...>(eID)
-			);
+			return std::tuple_cat(std::make_tuple(createHandle<C>(eID)), unpack<Cs...>(eID));
 		}
 	}
 

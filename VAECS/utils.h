@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <iostream>
+
 namespace CompileLoop
 {
 	template<size_t numberofiterations, template<size_t index> typename FunctionToExecuteWrapperClass, typename Parent, typename ... Args>

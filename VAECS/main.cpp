@@ -4,16 +4,21 @@
 
 void drawRectangle(SDL_Renderer* renderer, EntityID eID, World<Transform, Color>& world)
 {
-	auto [transorm, color] = world.unpack<Transform, Color>(eID);
+	auto [transform, color] = world.unpack<Transform, Color>(eID);
+
+	if (!transform.has_value() || !color.has_value())
+	{
+		return;
+	}
 
 	SDL_Rect rect{
-		.x = transorm.x,
-		.y = transorm.y,
-		.w = transorm.w,
-		.h = transorm.h
+		.x = transform->x,
+		.y = transform->y,
+		.w = transform->w,
+		.h = transform->h
 	};
 
-	SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+	SDL_SetRenderDrawColor(renderer, color->r, color->g, color->b, color->a);
 	SDL_RenderFillRect(renderer, &rect);
 }
 
@@ -79,6 +84,7 @@ int main(int argc, char* argv[])
 		{
 			drawRectangle(renderer, entity, world);
 		}
+
 		SDL_SetRenderDrawColor(renderer, 54, 136, 177, 255);
 
 		SDL_RenderPresent(renderer);

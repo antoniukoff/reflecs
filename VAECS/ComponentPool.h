@@ -39,6 +39,11 @@ public:
 		CompileLoop::execute<MEMBER_COUNT - 1, GenerateBuffersWrapper>(this, m_component_pool.buffer, CONTAINER_SIZE);
 	}
 
+	~ComponentPool()
+	{
+		/// TODO: Fix memory leak
+	}
+
 private:
 
 #pragma region CompileHelpers
@@ -141,8 +146,12 @@ public:
 		return m_entities_to_components[eID];
 	}
 
-	ComponentHandle<C> getComponent(EntityID eID)
+	std::optional<ComponentHandle<C>> getComponent(EntityID eID)
 	{
+		if (lookUp(eID) == 0)
+		{
+			return std::nullopt;
+		}
 		return ComponentHandle<C>(*this, eID);
 	}
 

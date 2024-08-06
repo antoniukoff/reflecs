@@ -6,7 +6,10 @@
 #include <algorithm>
 #include <assert.h>
 #include <functional>
+#include <bitset>
+#include <vector>
 #include "utils.h"
+#include <optional>
 
 using EntityID = std::size_t;
 using ComponentInstance = std::size_t;
