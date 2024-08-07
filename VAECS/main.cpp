@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 
 void drawRectangle(SDL_Renderer* renderer, EntityID eID, World<Transform, Color>& world)
 {
-    auto [transform, color] = world.unpack<Transform, Color>(eID); /// Optionals may be creating overhead(fewer values in the cache)
+    auto [transform, color] = world.unpack<Transform, Color>(eID);
 
     SDL_Rect rect{
         .x = transform.x,
@@ -112,6 +112,7 @@ void drawRectangle(SDL_Renderer* renderer, EntityID eID, World<Transform, Color>
                                      color.g,
                                      color.b, 
                                      color.a);
+
     SDL_RenderFillRect(renderer, &rect);
 }
 
@@ -143,14 +144,16 @@ int main(int argc, char* argv[]) {
     std::vector<EntityID> entityVec;
     entityVec.reserve(MAX_ENTITIES);
 
-    for (size_t i = 0; i < MAX_ENTITIES; ++i)
-    {
+    for (size_t i = 0; i < MAX_ENTITIES; ++i) {
         entityVec.emplace_back(generateEntityWithRectangle(world));
     }
 
     bool running = true;
+    int frameCount = 0;
+    double totalElapsedTime = 0.0;
 
     using Clock = std::chrono::high_resolution_clock;
+    auto startTime = Clock::now();
     auto lastTime = Clock::now();
 
     while (running) {
@@ -158,8 +161,12 @@ int main(int argc, char* argv[]) {
         std::chrono::duration<double> elapsed = currentTime - lastTime;
         lastTime = currentTime;
 
+        frameCount++;
+        totalElapsedTime += elapsed.count();
+
         double fps = 1.0 / elapsed.count();
         std::cout << "FPS: " << fps << '\n';
+
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT || event.key.keysym.sym == SDLK_ESCAPE) {
@@ -169,14 +176,19 @@ int main(int argc, char* argv[]) {
 
         SDL_RenderClear(renderer);
 
-        for (auto entity : entityVec) 
-        {
+        for (auto entity : entityVec) {
             drawRectangle(renderer, entity, world);
         }
 
         SDL_SetRenderDrawColor(renderer, 54, 136, 177, 255);
         SDL_RenderPresent(renderer);
     }
+
+    auto endTime = Clock::now();
+    std::chrono::duration<double> totalRunTime = endTime - startTime;
+    double averageFPS = frameCount / totalRunTime.count();
+
+    std::cout << "Average FPS: " << averageFPS << '\n';
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -240,20 +252,27 @@ int main(int argc, char* argv[]) {
 
     std::vector<Rectangle> rectangles;
 
-    for (EntityID i = 0; i < MAX_ENTITIES; ++i) {
-        rectangles.push_back( generateRectangle());
+    for (int i = 0; i < MAX_ENTITIES; ++i) {
+        rectangles.push_back(generateRectangle());
     }
 
     bool running = true;
     bool up = false, down = false, left = false, right = false;
 
+    int frameCount = 0;
+    double totalElapsedTime = 0.0;
+
     using Clock = std::chrono::high_resolution_clock;
+    auto startTime = Clock::now();
     auto lastTime = Clock::now();
 
     while (running) {
         auto currentTime = Clock::now();
         std::chrono::duration<double> elapsed = currentTime - lastTime;
         lastTime = currentTime;
+
+        frameCount++;
+        totalElapsedTime += elapsed.count();
 
         double fps = 1.0 / elapsed.count();
         std::cout << "FPS: " << fps << std::endl;
@@ -282,7 +301,6 @@ int main(int argc, char* argv[]) {
             }
         }
 
-
         SDL_RenderClear(renderer);
 
         for (const auto& rect : rectangles) {
@@ -293,13 +311,18 @@ int main(int argc, char* argv[]) {
         SDL_RenderPresent(renderer);
     }
 
+    auto endTime = Clock::now();
+    std::chrono::duration<double> totalRunTime = endTime - startTime;
+    double averageFPS = frameCount / totalRunTime.count();
+
+    std::cout << "Average FPS: " << averageFPS << '\n';
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
 
     return 0;
 }
-
 
 #pragma endregion
 */

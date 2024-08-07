@@ -2,6 +2,7 @@
 
 #include "Common.h"
 #include "Components.h"
+#include "PaginatedVector.h"
 
 template<typename C, size_t elements>
 struct ComponentData
@@ -57,6 +58,7 @@ public:
 		CompileLoop::execute<MEMBER_COUNT, AddComponentDataWrappers>(this, new_instance, component);
 
 		m_entities_to_components[eID] = new_instance;
+
 		m_component_pool.size++;
 		return new_instance;	
 	}
@@ -93,7 +95,7 @@ public:
 
 		CompileLoop::execute<MEMBER_COUNT, RemoveComponentDataWrapper>(this, instance);
 		
-		m_entities_to_components.erase(eID);
+		m_entities_to_components.remove(eID);
 		m_component_pool.size--;
 
 		ComponentInstance lastInstance = m_component_pool.size;
@@ -102,13 +104,8 @@ public:
 		{
 			return;
 		}
-
-		auto it = std::find_if(m_entities_to_components.begin(), m_entities_to_components.end(), [lastInstance](const auto& val)
-			{
-				return val.second == lastInstance;
-			});
 		
-		m_entities_to_components[it->first] = instance;
+		m_entities_to_components[eID] = instance;
 	}
 
 	void iterateAll(std::function<void(C)> lambda)
@@ -207,7 +204,7 @@ private:
 
 	static constexpr size_t MEMBER_COUNT = GetMemberCount<C>::count;
 	ComponentData<C, MEMBER_COUNT> m_component_pool;
-	std::unordered_map<EntityID, ComponentInstance> m_entities_to_components;
+	PaginatedVector<ComponentInstance> m_entities_to_components;
 };
 
 
