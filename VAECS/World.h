@@ -15,7 +15,7 @@ public:
 		createComponentPools<Ts...>();
 	}
 
-	void init()
+	void initialize()
 	{
 		/// Create systems and the components required to operate before init
 		/// Create entities before the init 
@@ -32,7 +32,7 @@ public:
 	}
 
 	/// To be called before init
-	void addSystem(System* system)
+	void registerSystem(System* system)
 	{
 		systems.push_back(system);
 	}
@@ -61,7 +61,7 @@ public:
 	{
 		static_assert(std::is_base_of<BaseComponent<C>, C>::value == true && "The template argument is not inhereting from BaseComponent");
 
-		ComponentPool<C>* mgr = static_cast<ComponentPool<C>*>(componentPools[getComponentFamily<C>()].get());
+		ComponentPool<C>* mgr = retrievePool<C>();
 		mgr->addComponent(eID, std::forward<Args>(args)...);
 
 		/// add to the system that uses that set of components
@@ -72,10 +72,12 @@ public:
 	{
 		static_assert(std::is_base_of<BaseComponent<C>, C>::value == true && "The template argument is not inhereting from BaseComponent");
 
-		ComponentPool<C>* mgr = static_cast<ComponentPool<C>*>(componentPools[getComponentFamily<C>()].get());
+		ComponentPool<C>* mgr = retrievePool<C>();
 		mgr->removeComponent(eID);
 	}
+	
 private:
+
 	template<typename Head, typename ... Tails>
 	void createComponentPools()
 	{
@@ -95,10 +97,16 @@ private:
 	}
 
 	template<typename C>
-	std::optional<ComponentHandle<C>> createHandle(EntityID eID)
+	ComponentHandle<C> createHandle(EntityID eID)
 	{
-		ComponentPool<C>* mgr = static_cast<ComponentPool<C>*>(componentPools[getComponentFamily<C>()].get());
+		ComponentPool<C>* mgr = retrievePool<C>();
 		return mgr->getComponent(eID);
+	}
+
+	template<typename C>
+	ComponentPool<C>* retrievePool()
+	{
+		return static_cast<ComponentPool<C>*>(componentPools[getComponentFamily<C>()].get());
 	}
 
 private:

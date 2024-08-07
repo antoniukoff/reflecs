@@ -44,86 +44,6 @@ public:
 		/// TODO: Fix memory leak
 	}
 
-private:
-
-#pragma region CompileHelpers
-	template<size_t index>
-	void generateBuffers(void* buffer[], size_t numElements)
-	{
-		using DataType = GetType<C, index>::Type;
-		buffer[index + 1] = static_cast<DataType*>(buffer[index]) + numElements;
-
-		char* previousAddress = (char*)buffer[index];
-		char* currentAddress  = (char*)buffer[index + 1];
-
-		size_t byteCount = currentAddress - previousAddress; // debugging
-		assert(byteCount == sizeof(DataType) * CONTAINER_SIZE && "Check member offset");
-	}
-
-	template<size_t index>
-	struct GenerateBuffersWrapper
-	{
-		void operator()(ComponentPool<C>* manager, void* buffer[], size_t numElements)
-		{
-			manager->generateBuffers<index>(buffer, numElements);
-		}
-	};
-
-	template<size_t index>
-	void countComponentSize(size_t& bytes)
-	{
-		bytes += sizeof(typename GetType<C, index>::Type);
-	}
-
-	template<size_t index>
-	struct CountComponentSizeWrapper
-	{
-		void operator()(ComponentPool<C>* manager, size_t& bytes)
-		{
-			manager->countComponentSize<index>(bytes);
-		}
-	};
-
-	template<size_t index>
-	struct AddComponentDataWrappers
-	{
-		void operator()(ComponentPool<C>* mgr, ComponentInstance instanceToAdd, C& component)
-		{
-			mgr->addComponentData<index>(instanceToAdd, component);
-		}
-	};
-	
-	template<size_t index>
-	void addComponentData(ComponentInstance instanceToAdd, C& component)
-	{
-		using DataType = GetType<C, index>::Type;
-
-		std::array<DataType, CONTAINER_SIZE>& arrayHandle = *static_cast<std::array<DataType, CONTAINER_SIZE>*>(m_component_pool.buffer[index]);
-		
-		arrayHandle[instanceToAdd] = component.*getPointerToMemeber<C, index>();
-	}
-
-	template<size_t index>
-	struct RemoveComponentDataWrapper
-	{
-		void operator()(ComponentPool<C>* mgr, ComponentInstance instanceToRemove)
-		{
-			mgr->removeComponentData<index>(instanceToRemove);
-		}
-	};
-
-	template<size_t index>
-	void removeComponentData(ComponentInstance instanceToRemove)
-	{
-		using DataType = GetType<C, index>::Type;
-		std::array<DataType, CONTAINER_SIZE>& arrayHandle = *static_cast<std::array<DataType, CONTAINER_SIZE>*>(m_component_pool.buffer[index]);
-
-		ComponentInstance lastInstance = m_component_pool.size - 1;
-		arrayHandle[instanceToRemove]  = arrayHandle[lastInstance];
-	}
-#pragma endregion
-
-public:
 	template<typename ... Args>
 	ComponentInstance& addComponent(EntityID eID, Args&& ... args)
 	{
@@ -146,18 +66,13 @@ public:
 		return m_entities_to_components[eID];
 	}
 
-	std::optional<ComponentHandle<C>> getComponent(EntityID eID)
+	ComponentHandle<C> getComponent(EntityID eID)
 	{
-		if (ComponentInstance instance = lookUp(eID); instance > 0)
-		{
-			return ComponentHandle<C>(*this, instance);
-
-		}
-		return std::nullopt;
+		return ComponentHandle<C>(*this, lookUp(eID));
 	}
 
 	template<size_t index>
-	typename GetType<C, index>::Type& getMemberBuffer(ComponentInstance componentInstance)
+	typename GetType<C, index>::Type& getMemberBuffer(EntityID componentInstance)
 	{
 		using DataType = GetType<C, index>::Type;
 
@@ -204,8 +119,93 @@ public:
 		}
 	}
 
+	size_t size()
+	{
+		return m_component_pool.size;
+	}
+
 private:
-	static const size_t MEMBER_COUNT = GetMemberCount<C>::count;
+
+#pragma region CompileHelpers
+	template<size_t index>
+	void generateBuffers(void* buffer[], size_t numElements)
+	{
+		using DataType = GetType<C, index>::Type;
+		buffer[index + 1] = static_cast<DataType*>(buffer[index]) + numElements;
+
+		char* previousAddress = (char*)buffer[index];
+		char* currentAddress = (char*)buffer[index + 1];
+
+		size_t byteCount = currentAddress - previousAddress; // debugging
+		assert(byteCount == sizeof(DataType) * CONTAINER_SIZE && "Check member offset");
+	}
+
+	template<size_t index>
+	struct GenerateBuffersWrapper
+	{
+		void operator()(ComponentPool<C>* manager, void* buffer[], size_t numElements)
+		{
+			manager->generateBuffers<index>(buffer, numElements);
+		}
+	};
+
+	template<size_t index>
+	void countComponentSize(size_t& bytes)
+	{
+		bytes += sizeof(typename GetType<C, index>::Type);
+	}
+
+	template<size_t index>
+	struct CountComponentSizeWrapper
+	{
+		void operator()(ComponentPool<C>* manager, size_t& bytes)
+		{
+			manager->countComponentSize<index>(bytes);
+		}
+	};
+
+	template<size_t index>
+	struct AddComponentDataWrappers
+	{
+		void operator()(ComponentPool<C>* mgr, ComponentInstance instanceToAdd, C& component)
+		{
+			mgr->addComponentData<index>(instanceToAdd, component);
+		}
+	};
+
+	template<size_t index>
+	void addComponentData(ComponentInstance instanceToAdd, C& component)
+	{
+		using DataType = GetType<C, index>::Type;
+
+		std::array<DataType, CONTAINER_SIZE>& arrayHandle = *static_cast<std::array<DataType, CONTAINER_SIZE>*>(m_component_pool.buffer[index]);
+
+		arrayHandle[instanceToAdd] = component.*getPointerToMemeber<C, index>();
+	}
+
+	template<size_t index>
+	struct RemoveComponentDataWrapper
+	{
+		void operator()(ComponentPool<C>* mgr, ComponentInstance instanceToRemove)
+		{
+			mgr->removeComponentData<index>(instanceToRemove);
+		}
+	};
+
+	template<size_t index>
+	void removeComponentData(ComponentInstance instanceToRemove)
+	{
+		using DataType = GetType<C, index>::Type;
+		std::array<DataType, CONTAINER_SIZE>& arrayHandle = *static_cast<std::array<DataType, CONTAINER_SIZE>*>(m_component_pool.buffer[index]);
+
+		ComponentInstance lastInstance = m_component_pool.size - 1;
+		arrayHandle[instanceToRemove] = arrayHandle[lastInstance];
+	}
+#pragma endregion
+
+private:
+
+	static constexpr size_t MEMBER_COUNT = GetMemberCount<C>::count;
 	ComponentData<C, MEMBER_COUNT> m_component_pool;
 	std::unordered_map<EntityID, ComponentInstance> m_entities_to_components;
 };

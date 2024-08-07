@@ -99,18 +99,19 @@ int main(int argc, char* argv[]) {
 
 void drawRectangle(SDL_Renderer* renderer, EntityID eID, World<Transform, Color>& world)
 {
-    auto [transform, color] = world.unpack<Transform, Color>(eID); /// Optionals may be creating overhead(probably fewer values in the cache)
-
-    size_t sizet = sizeof(transform);
+    auto [transform, color] = world.unpack<Transform, Color>(eID); /// Optionals may be creating overhead(fewer values in the cache)
 
     SDL_Rect rect{
-        .x = transform->x,
-        .y = transform->y,
-        .w = transform->w,
-        .h = transform->h
+        .x = transform.x,
+        .y = transform.y,
+        .w = transform.w,
+        .h = transform.h
     };
 
-    SDL_SetRenderDrawColor(renderer, color->r, color->g, color->b, color->a);
+    SDL_SetRenderDrawColor(renderer, color.r,
+                                     color.g,
+                                     color.b, 
+                                     color.a);
     SDL_RenderFillRect(renderer, &rect);
 }
 
@@ -142,7 +143,8 @@ int main(int argc, char* argv[]) {
     std::vector<EntityID> entityVec;
     entityVec.reserve(MAX_ENTITIES);
 
-    for (size_t i = 0; i < MAX_ENTITIES; ++i) {
+    for (size_t i = 0; i < MAX_ENTITIES; ++i)
+    {
         entityVec.emplace_back(generateEntityWithRectangle(world));
     }
 
@@ -157,8 +159,7 @@ int main(int argc, char* argv[]) {
         lastTime = currentTime;
 
         double fps = 1.0 / elapsed.count();
-        std::cout << "FPS: " << fps << std::endl;
-
+        std::cout << "FPS: " << fps << '\n';
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT || event.key.keysym.sym == SDLK_ESCAPE) {
@@ -168,7 +169,8 @@ int main(int argc, char* argv[]) {
 
         SDL_RenderClear(renderer);
 
-        for (auto entity : entityVec) {
+        for (auto entity : entityVec) 
+        {
             drawRectangle(renderer, entity, world);
         }
 
@@ -185,6 +187,8 @@ int main(int argc, char* argv[]) {
 
 
 #pragma endregion
+
+
 /*
 #pragma region Test3
 
