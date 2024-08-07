@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
 
 #pragma region Test2
 
-void drawRectangle(SDL_Renderer* renderer, EntityID eID, World<Transform, Color>& world)
+void drawRectangle(SDL_Renderer* renderer, EntityID eID, Registry<Transform, Color>& world)
 {
     auto [transform, color] = world.unpack<Transform, Color>(eID);
 
@@ -116,7 +116,7 @@ void drawRectangle(SDL_Renderer* renderer, EntityID eID, World<Transform, Color>
     SDL_RenderFillRect(renderer, &rect);
 }
 
-EntityID generateEntityWithRectangle(World<Transform, Color>& world)
+EntityID generateEntityWithRectangle(Registry<Transform, Color>& world)
 {
     EntityID eID = world.createEntity();
     static std::random_device randomEngine;
@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
     SDL_Window* window = SDL_CreateWindow("VAECS", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    World<Transform, Color> world;
+    Registry<Transform, Color> world;
     std::vector<EntityID> entityVec;
     entityVec.reserve(MAX_ENTITIES);
 

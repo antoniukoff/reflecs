@@ -4,12 +4,12 @@
 #include "System.h"
 
 template<typename ... Ts>
-class World
+class Registry
 {
 public:
 	
 	/// Creates the component manager vector from the templated arguments
-	World()
+	Registry()
 	{
 		componentPools.resize(MAX_COMPONENTS_SIZE);
 		createComponentPools<Ts...>();
