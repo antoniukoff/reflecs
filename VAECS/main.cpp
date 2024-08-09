@@ -1,120 +1,9 @@
 #include <random>
 #include <SDL.h>
-#include "World.h"
-/*
+#include "Registry.h"
+
+
 #pragma region Test1
-
-void drawRectangle(SDL_Renderer* renderer, EntityID eID, World<Transform, Color>& world)
-{
-	auto [transform, color] = world.unpack<Transform, Color>(eID); /// Optionals may be creating overhead(probably fewer values in the cache)
-
-    size_t sizet = sizeof(transform);
-
-	SDL_Rect rect{
-		.x = transform->x,
-		.y = transform->y,
-		.w = transform->w,
-		.h = transform->h
-	};
-
-	SDL_SetRenderDrawColor(renderer, color->r, color->g, color->b, color->a);
-	SDL_RenderFillRect(renderer, &rect);
-}
-
-EntityID generateEntityWithRectangle(World<Transform, Color>& world)
-{
-	EntityID eID = world.createEntity();
-	static std::random_device randomEngine;
-	static std::uniform_real_distribution<float> randomGenerator(0, 800);
-
-	static std::random_device randomEngine1;
-	static std::uniform_int_distribution<int> randomGenerator1(0, 255);
-
-	int randPosX = randomGenerator(randomEngine);
-	int randPosY = randomGenerator(randomEngine);
-
-	world.addComponent<Transform>(eID, randPosX, randPosY > 600 ? 600 : randPosY, 50, 50);
-	world.addComponent<Color>(eID, randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1));
-	return eID;
-}
-
-#include <chrono>
-int main(int argc, char* argv[]) {
-    SDL_Init(SDL_INIT_EVERYTHING);
-
-    SDL_Window* window = SDL_CreateWindow("VAECS", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
-    World<Transform, Color> world;
-    std::vector<EntityID> entityVec;
-    entityVec.reserve(MAX_ENTITIES);
-
-    for (size_t i = 0; i < MAX_ENTITIES; ++i) {
-        entityVec.emplace_back(generateEntityWithRectangle(world));
-    }
-
-    bool running = true;
-
-    using Clock = std::chrono::high_resolution_clock;
-    auto lastTime = Clock::now();
-
-    while (running) {
-        auto currentTime = Clock::now();
-        std::chrono::duration<double> elapsed = currentTime - lastTime;
-        lastTime = currentTime;
-
-        double fps = 1.0 / elapsed.count();
-        std::cout << "FPS: " << fps << std::endl;
-
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT || event.key.keysym.sym == SDLK_ESCAPE) {
-                running = false;
-            }
-        }
-       
-        SDL_RenderClear(renderer);
-
-        for (auto entity : entityVec) {
-            drawRectangle(renderer, entity, world);
-        }
-
-        SDL_SetRenderDrawColor(renderer, 54, 136, 177, 255);
-        SDL_RenderPresent(renderer);
-    }
-
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-
-    return 0;
-}
-#pragma endregion
-
-
-
-*/
-
-#pragma region Test2
-
-void drawRectangle(SDL_Renderer* renderer, EntityID eID, Registry<Transform, Color>& world)
-{
-    auto [transform, color] = world.unpack<Transform, Color>(eID);
-
-    SDL_Rect rect{
-        .x = transform.x,
-        .y = transform.y,
-        .w = transform.w,
-        .h = transform.h
-    };
-
-    SDL_SetRenderDrawColor(renderer, color.r,
-                                     color.g,
-                                     color.b, 
-                                     color.a);
-
-    SDL_RenderFillRect(renderer, &rect);
-}
 
 EntityID generateEntityWithRectangle(Registry<Transform, Color>& world)
 {
@@ -133,6 +22,7 @@ EntityID generateEntityWithRectangle(Registry<Transform, Color>& world)
     return eID;
 }
 
+
 #include <chrono>
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -141,6 +31,7 @@ int main(int argc, char* argv[]) {
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     Registry<Transform, Color> world;
+
     std::vector<EntityID> entityVec;
     entityVec.reserve(MAX_ENTITIES);
 
@@ -155,8 +46,10 @@ int main(int argc, char* argv[]) {
     using Clock = std::chrono::high_resolution_clock;
     auto startTime = Clock::now();
     auto lastTime = Clock::now();
+   
 
-    while (running) {
+    while (running) 
+    {
         auto currentTime = Clock::now();
         std::chrono::duration<double> elapsed = currentTime - lastTime;
         lastTime = currentTime;
@@ -168,17 +61,42 @@ int main(int argc, char* argv[]) {
         std::cout << "FPS: " << fps << '\n';
 
         SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT || event.key.keysym.sym == SDLK_ESCAPE) {
+        while (SDL_PollEvent(&event)) 
+        {
+            if (event.type == SDL_QUIT || event.key.keysym.sym == SDLK_ESCAPE) 
+            {
                 running = false;
+            }
+            if (event.key.keysym.sym == SDLK_1)
+            {
+                world.destroyEntity(5);
             }
         }
 
+        world.ForEach<Transform>([renderer](ComponentHandle<Transform>& transform)
+            {
+                transform.x()++;
+                transform.y()++;
+            });
+
         SDL_RenderClear(renderer);
 
-        for (auto entity : entityVec) {
-            drawRectangle(renderer, entity, world);
-        }
+        world.ForEach<Transform, Color>([renderer](ComponentHandle<Transform>& transform, ComponentHandle<Color>& color)
+            {
+                SDL_Rect rect{
+                    .x = transform.x(),
+                    .y = transform.y(),
+                    .w = transform.w(),
+                    .h = transform.h()
+                };
+
+                SDL_SetRenderDrawColor(renderer, color.r(),
+                    color.g(),
+                    color.b(),
+                    color.a());
+
+                SDL_RenderFillRect(renderer, &rect);
+            });
 
         SDL_SetRenderDrawColor(renderer, 54, 136, 177, 255);
         SDL_RenderPresent(renderer);
@@ -196,13 +114,12 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-
-
 #pragma endregion
 
 
+
 /*
-#pragma region Test3
+#pragma region Test2
 
 #include <SDL.h>
 #include <iostream>
@@ -300,6 +217,7 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+
 
         SDL_RenderClear(renderer);
 

@@ -3,6 +3,30 @@
 
 #pragma region ComponentHelpers
 
+	template<typename... Ts>
+	struct TypeList {};
+
+	template<size_t Index, typename List>
+	struct GetTypeAtIndex;
+
+	/// Recursively get the desired type based on the index until it hits the 0th base case
+	template<size_t Index, typename Head, typename... Tail>
+	struct GetTypeAtIndex<Index, TypeList<Head, Tail...>> 
+	{
+		using Type = typename GetTypeAtIndex<Index - 1, TypeList<Tail...>>::Type;
+	};
+
+	/// Base case
+	template<typename Head, typename... Tail>
+	struct GetTypeAtIndex<0, TypeList<Head, Tail...>> 
+	{
+		using Type = Head;
+	};
+
+	/// Get type of component at index
+	template<size_t Index, typename ... Ts>
+	using ComponentTypeAtIndex = typename GetTypeAtIndex<Index, TypeList<Ts...>>::Type;
+
 	/// Compile-Time field count
 	template<typename ComponentType>
 	struct GetMemberCount;
@@ -39,23 +63,24 @@
 			static int family = ComponentCounter::counter++;
 			return family;
 		}
+		
 	};
-
+	
 	/// Used to identify the index of the component manager 
 	/// in the component manager vector in the world
 	template<typename C>
-	static int getComponentFamily()
+	static size_t GetComponentFamily()
 	{
 		return BaseComponent<typename std::remove_const<C>::type>::family();
 	}
 
 #pragma endregion
 
+	
+
 #pragma region Components
 
-	/// <summary>
 	/// Components must follow the provided template below for ecs to work properly
-	/// </summary>
 
 	struct Transform : BaseComponent<Transform>
 	{

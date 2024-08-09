@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 #include <iostream>
-
 namespace CompileLoop
 {
 	template<size_t numberofiterations, template<size_t index> typename FunctionToExecuteWrapperClass, typename Parent, typename ... Args>
@@ -30,6 +29,8 @@ namespace CompileLoop
 	{
 		ForEach<numberofiterations, FunctionToExecuteWrapperClass, Parent, Args...>::template loop<0>(parent, args...); // index of starting Pos?
 	}
+
+	
 }
 
 ///////////////////////////////////////////////////////

@@ -15,6 +15,7 @@ class BaseComponentPool
 {
 public:
 	virtual ~BaseComponentPool() = default;
+	virtual void remove(EntityID eID) = 0;
 };
 
 template<typename C>
@@ -46,7 +47,7 @@ public:
 	}
 
 	template<typename ... Args>
-	ComponentInstance& addComponent(EntityID eID, Args&& ... args)
+	ComponentInstance& add(EntityID eID, Args&& ... args)
 	{
 		//Step 1: Loop throght all the member
 		//Step 2: Cast it to the std::array of the member type by their index
@@ -68,7 +69,7 @@ public:
 		return m_entities_to_components[eID];
 	}
 
-	ComponentHandle<C> getComponent(EntityID eID)
+	ComponentHandle<C> retrieve(EntityID eID)
 	{
 		return ComponentHandle<C>(*this, lookUp(eID));
 	}
@@ -82,7 +83,7 @@ public:
 		return arr[componentInstance];
 	}
 
-	void removeComponent(EntityID eID)
+	void remove(EntityID eID) override
 	{
 		/// Step 1 find the component to remove in all the member pools of the component
 		/// Step 2 copy the memory from the last member of the pool to the place where removed component index
@@ -106,19 +107,6 @@ public:
 		}
 		
 		m_entities_to_components[eID] = instance;
-	}
-
-	void iterateAll(std::function<void(C)> lambda)
-	{
-		for (int i = 1; i < m_component_pool.size; i++)
-		{
-			lambda(m_component_pool.component_data[i]);
-		}
-	}
-
-	size_t size()
-	{
-		return m_component_pool.size;
 	}
 
 private:
@@ -217,41 +205,42 @@ template<>
 class ComponentHandle<Transform>
 {
 public:
-	/// Data
-	int& x;
-	int& y;
-	int& w;
-	int& h;
+	ComponentPool<Transform>& mgr;
+	ComponentInstance instance;
 
 public:
 	ComponentHandle() = default;
 
 	ComponentHandle(ComponentPool<Transform>& mgr, ComponentInstance instance)
-		: x(mgr.getMemberBuffer<0>(instance))
-		, y(mgr.getMemberBuffer<1>(instance))
-		, w(mgr.getMemberBuffer<2>(instance))
-		, h(mgr.getMemberBuffer<3>(instance))
+		: mgr(mgr)
+		, instance(instance)
 	{}
+
+	inline int& x()  { return mgr.getMemberBuffer<0>(instance); }
+	inline int& y()  { return mgr.getMemberBuffer<1>(instance); }
+	inline int& w()  { return mgr.getMemberBuffer<2>(instance); }
+	inline int& h()  { return mgr.getMemberBuffer<3>(instance); }
+
 };
 
 template<>
 class ComponentHandle<Color>
 {
 public:
-	/// Data
-	char& r;
-	char& g;
-	char& b;
-	char& a;
+	ComponentPool<Color>& mgr;
+	ComponentInstance instance;
 
 public:
 	ComponentHandle() = default;
 
 	ComponentHandle(ComponentPool<Color>& mgr, ComponentInstance instance)
-		: r(mgr.getMemberBuffer<0>(instance))
-		, g(mgr.getMemberBuffer<1>(instance))
-		, b(mgr.getMemberBuffer<2>(instance))
-		, a(mgr.getMemberBuffer<3>(instance))
+		: mgr(mgr)
+		, instance(instance)
 	{}
+
+	inline char& r() { return mgr.getMemberBuffer<0>(instance); }
+	inline char& g() { return mgr.getMemberBuffer<1>(instance); }
+	inline char& b() { return mgr.getMemberBuffer<2>(instance); }
+	inline char& a() { return mgr.getMemberBuffer<3>(instance); }
 };
 #pragma endregion

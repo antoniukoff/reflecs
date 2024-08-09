@@ -158,11 +158,12 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="Components.h" />
     <ClInclude Include="ComponentPool.h" />
+    <ClInclude Include="Registry.h" />
     <ClInclude Include="System.h" />
     <ClInclude Include="utils.h" />
-    <ClInclude Include="World.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ComponentMask.h" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PaginatedVector.h" />
   </ItemGroup>
