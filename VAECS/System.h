@@ -3,85 +3,74 @@
 #include "Common.h"
 #include "ComponentMask.h"
 #include <SDL.h>
+#include "utils.h"
 
 template<typename ... Cs>
 class Registry;
 
+template<typename ... Ts>
 class System
 {
 public:
-	explicit System(Signature bitSet)
-		: systemSignatures(bitSet)
+	System(Registry<Ts...>& registry)
+		: registry(registry)
 	{}
+	virtual void init() = 0;
+	
 	virtual void update() {};
 	virtual void render(SDL_Renderer* renderer) {};
 
-	void registerEntities(std::vector<EntityID>* entities)
-	{
-		registeredEntities = entities;
-	}
-
-	void deregisterEntity(const EntityID entity)
-	{
-		std::erase_if(*registeredEntities, [entity](const EntityID e)  
-			{
-				return e == entity;
-			});
-	}
-
-	const auto& getBitset() const
-	{
-		return systemSignatures;
-	}
-
-	
-
-public:
-	template<typename ... Cs>
-	static Signature createSystemSignatures()
-	{
-		Signature signatures;
-
-		(signatures.set(GetComponentFamily<Cs>()), ...);
-		return signatures;
-	}
-
 protected:
-	Signature systemSignatures;
-	std::vector<EntityID>* registeredEntities = nullptr;
+	Signature		 systemSignatures;
+	Registry<Ts...>& registry;
+	std::vector<std::vector<EntityID>*> registeredEntities;
 };
 
 template<typename ... Ts>
-class RenderSystem : public System
+class RenderSystem : public System<Ts...>
 {
 private:
-	Registry<Ts...>& registry;
 public:
-
 	RenderSystem(Registry<Ts...>& registry)
-		: registry(registry)
-		, System(createSystemSignatures<Transform, Color>())
-	{}
+		: System<Ts...>(registry)
+	{
+		this->systemSignatures = utils::createSystemSignatures<Transform, Color>();
+	}
+
+	void init()
+	{
+		for (auto& [bitset, entityVec] : this->registry.m_entities)
+		{
+			if ((bitset & this->systemSignatures) == this->systemSignatures)
+			{
+				this->registeredEntities.push_back(&entityVec);
+			}
+		}
+	}
 
 	void render(SDL_Renderer* renderer) override
 	{
-		for (auto eID : *registeredEntities)
+		for (auto& vec : this->registeredEntities)
 		{
-			auto [transform, color] = registry.template unpack<Transform, Color>(eID);
+			for (auto& eID : *vec)
+			{
+				auto [transform, color] = this->registry.template unpack<Transform, Color>(eID);
 
-			SDL_Rect rect{
-				.x = transform.x,
-				.y = transform.y,
-				.w = transform.w,
-				.h = transform.h
-			};
+				SDL_Rect rect{
+					.x = transform.x(),
+					.y = transform.y(),
+					.w = transform.w(),
+					.h = transform.h()
+				};
 
-			SDL_SetRenderDrawColor(renderer, color.r,
-				color.g,
-				color.b,
-				color.a);
+				SDL_SetRenderDrawColor(renderer, color.r(),
+					color.g(),
+					color.b(),
+					color.a());
 
-			SDL_RenderFillRect(renderer, &rect);
+
+				SDL_RenderFillRect(renderer, &rect);
+			}
 		}
 	}
 };

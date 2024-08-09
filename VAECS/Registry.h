@@ -10,12 +10,12 @@ class Registry
 
 private:
 	static constexpr size_t REGISTERED_COMPONENTS = sizeof...(Ts);
-	std::vector<System*> systems;
+	std::vector<System<Ts...>*> systems;
 	std::vector<std::unique_ptr<BaseComponentPool>> componentPools; // type erasure
 	std::queue<EntityID> availableIDs;
-	std::unordered_map<Signature, std::vector<EntityID>> m_entities;
 	std::vector<Signature> entities_to_signatures;
 public:
+	std::unordered_map<Signature, std::vector<EntityID>> m_entities;
 
 	/// Creates the component manager vector from the templated arguments
 	Registry()
@@ -32,9 +32,23 @@ public:
 	void initialize()
 	{
 		/// Create systems and the components required to operate before init
-		/// Create entities before the init 
-		/// In the init once bothe are created tie the `entities to the systems based on their set of components
-		/// And if they match the systems requirements
+		for (auto& system : systems)
+		{
+			system->init();
+		}
+	}
+
+	void update()
+	{
+		for (auto& system : systems)
+		{
+			system->update();
+		}
+	}
+
+	void display(SDL_Renderer* renderer)
+	{
+		systems.back()->render(renderer);
 	}
 
 	EntityID createEntity()
@@ -47,29 +61,17 @@ public:
 
 	/// To be called before init
 	template<typename T>
-	void registerSystem(T system)
+	void registerSystem(T& system)
 	{
-		static_assert(std::is_base_of<System, T>::value == true && std::is_same<System, T>::value == false && "System is not inhereting from the base class");
+		static_assert(std::is_base_of<System<Ts...>, T>::value == true && std::is_same<System<Ts...>, T>::value == false && "System is not inhereting from the base class");
 
-		auto entitiesToRegister = getEntityIDs(system.getBitset());
-		system.registerEntities(entitiesToRegister);
 		systems.push_back(&system);
 	}
 
 	void destroyEntity(EntityID e)
 	{
-		/// Remove from the component managers
-		/// Remove from the systems
-		/// Update the bitsets map
-		/// Give back the ID to the queue
-		
-		/// We have the bitset that corresponds to the components family 
-		/// meaning we can iterate the size of the current bitset and get the type using
-		/// indexed type trait and remove from that pool
-
-		/// for the systems for now just iterate and remove from the vector(might be slow - can use a flag to indicate that entity is no longer active)
-
-		CompileLoop::execute<REGISTERED_COMPONENTS, RemoveEntityWrapper>(this, e, entities_to_signatures[e]);
+		utils::CompileLoop::execute<REGISTERED_COMPONENTS, RemoveEntityWrapper>(this, e, entities_to_signatures[e]);
+		availableIDs.push(e);
 	}
 
 	template<typename C, typename ... Cs>
@@ -85,8 +87,6 @@ public:
 		}
 	}
 
-	
-
 	template<typename C, typename ... Args>
 	void addComponent(EntityID eID, Args&& ... args)
 	{
@@ -95,19 +95,13 @@ public:
 		ComponentPool<C>* mgr = retrievePool<C>();
 		mgr->add(eID, std::forward<Args>(args)...);
 
-		Signature s = entities_to_signatures[eID];
-
-		std::erase(m_entities[s], eID);
-		s.set(GetComponentFamily<C>(), true);
-		entities_to_signatures[eID] = s;
-
-		m_entities[s].push_back(eID);
+		updateMask<C>(eID, true);
 	}
 
 	template<typename ... Cs, typename F>
 	void ForEach(F&& function)
 	{
-		Signature targetBitset = System::createSystemSignatures<Cs...>();
+		Signature targetBitset = utils::createSystemSignatures<Cs...>();
 		std::vector<std::vector<EntityID>*> entityVecs;
 		for (auto& [bitset, entityVec] : m_entities)
 		{
@@ -140,17 +134,20 @@ public:
 		ComponentPool<C>* mgr = retrievePool<C>();
 		mgr->remove(eID);
 
-		Signature s = entities_to_signatures[eID];
-
-		std::erase(m_entities[s], eID);
-
-		s.set(GetComponentFamily<C>(), false);
-		entities_to_signatures[eID] = s;
-
-		m_entities[s].push_back(eID);
+		updateMask<C>(eID, false);
 	}
 	
 private:
+	
+	template<typename C>
+	void updateMask(EntityID eID, bool add)
+	{
+		Signature s = entities_to_signatures[eID];
+		std::erase(m_entities[s], eID);
+		s.set(GetComponentFamily<C>(), add);
+		entities_to_signatures[eID] = s;
+		m_entities[s].push_back(eID);
+	}
 
 	std::vector<EntityID>* getEntityIDs(Signature bitset)
 	{

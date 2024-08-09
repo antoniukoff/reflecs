@@ -173,3 +173,4 @@
 	template<> typename GetPointerToMemeberType<Color, 3>::Type getPointerToMemeber<Color, 3>() { return &Color::a; }
 
 #pragma endregion
+

@@ -3,6 +3,7 @@
 #include "Common.h"
 #include "Components.h"
 #include "PaginatedVector.h"
+#include "utils.h"
 
 template<typename C, size_t elements>
 struct ComponentData
@@ -15,7 +16,6 @@ class BaseComponentPool
 {
 public:
 	virtual ~BaseComponentPool() = default;
-	virtual void remove(EntityID eID) = 0;
 };
 
 template<typename C>
@@ -34,11 +34,11 @@ public:
 	ComponentPool()
 	{
 		size_t packed_component_size = 0;
-		CompileLoop::execute<MEMBER_COUNT, CountComponentSizeWrapper>(this, packed_component_size);
+		utils::CompileLoop::execute<MEMBER_COUNT, CountComponentSizeWrapper>(this, packed_component_size);
 		
 		size_t bytes = CONTAINER_SIZE * packed_component_size;
 		m_component_pool.buffer[0] = malloc(bytes);
-		CompileLoop::execute<MEMBER_COUNT - 1, GenerateBuffersWrapper>(this, m_component_pool.buffer, CONTAINER_SIZE);
+		utils::CompileLoop::execute<MEMBER_COUNT - 1, GenerateBuffersWrapper>(this, m_component_pool.buffer, CONTAINER_SIZE);
 	}
 
 	~ComponentPool()
@@ -56,7 +56,7 @@ public:
 
 		ComponentInstance new_instance = m_component_pool.size;
 		C component = C(std::forward<Args>(args)...);
-		CompileLoop::execute<MEMBER_COUNT, AddComponentDataWrappers>(this, new_instance, component);
+		utils::CompileLoop::execute<MEMBER_COUNT, AddComponentDataWrappers>(this, new_instance, component);
 
 		m_entities_to_components[eID] = new_instance;
 
@@ -83,7 +83,7 @@ public:
 		return arr[componentInstance];
 	}
 
-	void remove(EntityID eID) override
+	void remove(EntityID eID) 
 	{
 		/// Step 1 find the component to remove in all the member pools of the component
 		/// Step 2 copy the memory from the last member of the pool to the place where removed component index
@@ -94,7 +94,7 @@ public:
 		assert(instance > 0 && "Entity is not assigned to this component");
 		assert(instance < CONTAINER_SIZE && "Instance is out of range");	
 
-		CompileLoop::execute<MEMBER_COUNT, RemoveComponentDataWrapper>(this, instance);
+		utils::CompileLoop::execute<MEMBER_COUNT, RemoveComponentDataWrapper>(this, instance);
 		
 		m_entities_to_components.remove(eID);
 		m_component_pool.size--;

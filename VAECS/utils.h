@@ -1,36 +1,49 @@
 #pragma once
 #include <string>
 #include <iostream>
-namespace CompileLoop
+#include "Common.h"
+namespace utils
 {
-	template<size_t numberofiterations, template<size_t index> typename FunctionToExecuteWrapperClass, typename Parent, typename ... Args>
-	struct ForEach
+	namespace CompileLoop
 	{
-		template<size_t index>
-		static void loop(Parent* parent, Args&& ... args)
+		template<size_t numberofiterations, template<size_t index> typename FunctionToExecuteWrapperClass, typename Parent, typename ... Args>
+		struct ForEach
 		{
-			if constexpr (index >= numberofiterations)
+			template<size_t index>
+			static void loop(Parent* parent, Args&& ... args)
 			{
-				return;
-			}
-			else
-			{
-				FunctionToExecuteWrapperClass<index> wrapper = FunctionToExecuteWrapperClass<index>();
+				if constexpr (index >= numberofiterations)
+				{
+					return;
+				}
+				else
+				{
+					FunctionToExecuteWrapperClass<index> wrapper = FunctionToExecuteWrapperClass<index>();
 
-				wrapper(parent, args...);
+					wrapper(parent, args...);
 
-				ForEach<numberofiterations, FunctionToExecuteWrapperClass, Parent, Args ...>::template loop<index + 1>(parent, args...);
+					ForEach<numberofiterations, FunctionToExecuteWrapperClass, Parent, Args ...>::template loop<index + 1>(parent, args...);
+				}
 			}
+		};
+
+		template<size_t numberofiterations, template<size_t N> typename FunctionToExecuteWrapperClass, typename Parent, typename ... Args>
+		void execute(Parent* parent, Args&& ... args)
+		{
+			ForEach<numberofiterations, FunctionToExecuteWrapperClass, Parent, Args...>::template loop<0>(parent, args...); // index of starting Pos?
 		}
-	};
 
-	template<size_t numberofiterations, template<size_t N> typename FunctionToExecuteWrapperClass, typename Parent, typename ... Args>
-	void execute(Parent* parent, Args&& ... args)
-	{
-		ForEach<numberofiterations, FunctionToExecuteWrapperClass, Parent, Args...>::template loop<0>(parent, args...); // index of starting Pos?
+
 	}
 
-	
+	template<typename ... Cs>
+	inline Signature createSystemSignatures()
+	{
+		Signature signatures;
+
+		(signatures.set(GetComponentFamily<Cs>()), ...);
+		return signatures;
+	}
 }
 
 ///////////////////////////////////////////////////////
@@ -75,13 +88,13 @@ public:
 	template<size_t numofIter>
 	void printMessages(std::string messageToPrint)
 	{
-		CompileLoop::execute<numofIter, PrintMessagesWrapper>(this, messageToPrint);
+		utils::CompileLoop::execute<numofIter, PrintMessagesWrapper>(this, messageToPrint);
 	}
 
 	template<size_t numofIter>
 	void printNumbers(size_t numbers)
 	{
-		CompileLoop::execute<numofIter, PrintNumberWrapper>(this, numbers);
+		utils::CompileLoop::execute<numofIter, PrintNumberWrapper>(this, numbers);
 	}
 };
 
