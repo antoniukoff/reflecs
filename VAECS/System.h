@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Common.h"
-#include "ComponentMask.h"
 #include <SDL.h>
 #include "utils.h"
 
@@ -12,16 +11,27 @@ template<typename ... Ts>
 class System
 {
 public:
-	System(Registry<Ts...>& registry)
+	System(Registry<Ts...>& registry, Signature signature)
 		: registry(registry)
+		, systemSignature(signature)
 	{}
-	virtual void init() = 0;
+
+	void init()
+	{
+		for (auto& [bitset, entityVec] : registry.m_entities)
+		{
+			if ((bitset & systemSignature) == systemSignature)
+			{
+				registeredEntities.push_back(&entityVec);
+			}
+		}
+	}
 	
 	virtual void update() {};
 	virtual void render(SDL_Renderer* renderer) {};
 
 protected:
-	Signature		 systemSignatures;
+	Signature		 systemSignature;
 	Registry<Ts...>& registry;
 	std::vector<std::vector<EntityID>*> registeredEntities;
 };
@@ -32,21 +42,8 @@ class RenderSystem : public System<Ts...>
 private:
 public:
 	RenderSystem(Registry<Ts...>& registry)
-		: System<Ts...>(registry)
-	{
-		this->systemSignatures = utils::createSystemSignatures<Transform, Color>();
-	}
-
-	void init()
-	{
-		for (auto& [bitset, entityVec] : this->registry.m_entities)
-		{
-			if ((bitset & this->systemSignatures) == this->systemSignatures)
-			{
-				this->registeredEntities.push_back(&entityVec);
-			}
-		}
-	}
+		: System<Ts...>(registry, utils::createSystemSignatures<Transform, Color>())
+	{}
 
 	void render(SDL_Renderer* renderer) override
 	{

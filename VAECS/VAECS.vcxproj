@@ -163,7 +163,6 @@
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ComponentMask.h" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PaginatedVector.h" />
   </ItemGroup>

@@ -98,8 +98,8 @@ public:
 		
 		m_entities_to_components.remove(eID);
 		m_component_pool.size--;
-
 		ComponentInstance lastInstance = m_component_pool.size;
+
 
 		if (instance == lastInstance)
 		{
@@ -242,5 +242,24 @@ public:
 	inline char& g() { return mgr.getMemberBuffer<1>(instance); }
 	inline char& b() { return mgr.getMemberBuffer<2>(instance); }
 	inline char& a() { return mgr.getMemberBuffer<3>(instance); }
+};
+
+template<>
+class ComponentHandle<Velocity>
+{
+public:
+	ComponentPool<Velocity>& mgr;
+	ComponentInstance instance;
+
+public:
+	ComponentHandle() = default;
+
+	ComponentHandle(ComponentPool<Velocity>& mgr, ComponentInstance instance)
+		: mgr(mgr)
+		, instance(instance)
+	{}
+
+	inline int& x() { return mgr.getMemberBuffer<0>(instance); }
+	inline int& y() { return mgr.getMemberBuffer<1>(instance); }
 };
 #pragma endregion

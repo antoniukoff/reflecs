@@ -2,10 +2,9 @@
 #include <SDL.h>
 #include "Registry.h"
 
-
 #pragma region Test1
 
-EntityID generateEntityWithRectangle(Registry<Transform, Color>& registry)
+EntityID generateEntityWithRectangle(Registry<Transform, Velocity, Color>& registry)
 {
     static std::random_device randomEngine;
     static std::uniform_real_distribution<float> randomGenerator(0, 800);
@@ -19,6 +18,7 @@ EntityID generateEntityWithRectangle(Registry<Transform, Color>& registry)
     EntityID eID = registry.createEntity();
     registry.addComponent<Transform>(eID, randPosX, randPosY > 600 ? 600 : randPosY, 50, 50);
     registry.addComponent<Color>(eID, randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1));
+    registry.addComponent<Velocity>(eID, randomGenerator1(randomEngine1), randomGenerator1(randomEngine1));
     return eID;
 }
 
@@ -30,15 +30,12 @@ int main(int argc, char* argv[]) {
     SDL_Window* window = SDL_CreateWindow("VAECS", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    Registry<Transform, Color> registry;
-    RenderSystem render(registry);
-    registry.registerSystem(render);
+    Registry<Transform, Velocity, Color> registry;
 
     for (size_t i = 0; i < MAX_ENTITIES; ++i) {
         generateEntityWithRectangle(registry);
     }
     
-    registry.initialize();
     size_t size = MAX_ENTITIES;
     bool running = true;
 #pragma region fpscount
@@ -73,7 +70,7 @@ int main(int argc, char* argv[]) {
             }
             if (event.key.keysym.sym == SDLK_1)
             {
-                for (size_t i = size; i > size - 50; i--)
+                for (size_t i = size; i > size - 500; i--)
                 {
                     registry.destroyEntity(i - 1);
                 }
@@ -86,27 +83,26 @@ int main(int argc, char* argv[]) {
         }
 
 
-
         SDL_RenderClear(renderer);
 
-        //registry.ForEach<Transform, Color>([renderer](ComponentHandle<Transform>& transform, ComponentHandle<Color>& color)
-        //    {
-        //        SDL_Rect rect{
-        //            .x = transform.x(),
-        //            .y = transform.y(),
-        //            .w = transform.w(),
-        //            .h = transform.h()
-        //        };
+        registry.ForEach<Transform, Color>([renderer](ComponentHandle<Transform>& transform, ComponentHandle<Color>& color)
+            {
+                SDL_Rect rect{
+                    .x = transform.x(),
+                    .y = transform.y(),
+                    .w = transform.w(),
+                    .h = transform.h()
+                };
 
-        //        SDL_SetRenderDrawColor(renderer, color.r(),
-        //                                         color.g(),
-        //                                         color.b(),
-        //                                         color.a());
+                SDL_SetRenderDrawColor(renderer, color.r(),
+                                                 color.g(),
+                                                 color.b(),
+                                                 color.a());
 
-        //        SDL_RenderFillRect(renderer, &rect);
-        //    });
-        //
-        registry.display(renderer);
+                SDL_RenderFillRect(renderer, &rect);
+            });
+        
+        //registry.display(renderer);
 
         SDL_SetRenderDrawColor(renderer, 54, 136, 177, 255);
         SDL_RenderPresent(renderer);

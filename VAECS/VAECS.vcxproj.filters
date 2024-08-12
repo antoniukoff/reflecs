@@ -41,8 +41,5 @@
     <ClCompile Include="PaginatedVector.h">
       <Filter>Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="ComponentMask.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

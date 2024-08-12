@@ -110,14 +110,10 @@ public:
 				entityVecs.push_back(&entityVec);
 			}
 		}
-		if (entityVecs.empty()) 
-		{
-			return;
-		}
 
-		for (size_t i = 0; i < entityVecs.size(); ++i)
+		for (auto& vec: entityVecs)
 		{
-			for (auto entityID : *entityVecs[i])
+			for (auto entityID : *vec)
 			{
 				auto t = unpack<Cs...>(entityID);
 				std::apply(function, t);

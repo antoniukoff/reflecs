@@ -127,6 +127,37 @@
 	template<> typename GetPointerToMemeberType<Transform, 2>::Type getPointerToMemeber<Transform, 2>() { return &Transform::w; }
 	template<> typename GetPointerToMemeberType<Transform, 3>::Type getPointerToMemeber<Transform, 3>() { return &Transform::h; }
 
+
+	struct Velocity : BaseComponent<Velocity>
+	{
+		Velocity(int x, int y)
+			: x(x)
+			, y(y)
+		{}
+		/// Data
+		int x = {};
+		int y = {};
+	};
+
+	template<> struct GetMemberCount<Velocity>
+	{
+		static const size_t count = 2;
+	};
+
+	template<> struct GetType<Velocity, 0>
+	{
+		using Type = int;
+	};
+
+	template<> struct GetType<Velocity, 1>
+	{
+		using Type = int;
+	};
+
+	template<> typename GetPointerToMemeberType<Velocity, 0>::Type getPointerToMemeber<Velocity, 0>() { return &Velocity::x; }
+	template<> typename GetPointerToMemeberType<Velocity, 1>::Type getPointerToMemeber<Velocity, 1>() { return &Velocity::y; }
+	
+
 	struct Color : public BaseComponent<Color>
 	{
 		Color(char r, char g, char b, char a)
