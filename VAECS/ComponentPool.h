@@ -8,7 +8,7 @@
 template<typename C, size_t elements>
 struct ComponentData
 {
-	size_t size = 1; //  first available element in the array starts at 1; 0 reserved for error handling
+	size_t size = 1; // first available element in the array starts at 1; 0 reserved for error handling
 	void* buffer[elements];
 };
 
@@ -22,8 +22,8 @@ template<typename C>
 class ComponentHandle;
 
 /// <summary>
-/// This class will hold the component pool and manage
-/// the assignment of an entity to the available slot as well as its removal from the pool
+/// This class will hold the component pool and manage the assignment
+/// of an entity to the available slot as well as its removal from the pool
 /// </summary>
 /// <typeparam name="C">Component Type</typeparam>
 template<typename C>
@@ -112,6 +112,7 @@ public:
 private:
 
 #pragma region CompileHelpers
+
 	template<size_t index>
 	void generateBuffers(void* buffer[], size_t numElements)
 	{
@@ -165,7 +166,7 @@ private:
 
 		std::array<DataType, CONTAINER_SIZE>& arrayHandle = *static_cast<std::array<DataType, CONTAINER_SIZE>*>(m_component_pool.buffer[index]);
 
-		arrayHandle[instanceToAdd] = component.*getPointerToMemeber<C, index>();
+		arrayHandle[instanceToAdd] = component.*GetPointerToMemeber<C, index>();
 	}
 
 	template<size_t index>
@@ -186,6 +187,7 @@ private:
 		ComponentInstance lastInstance = m_component_pool.size - 1;
 		arrayHandle[instanceToRemove] = arrayHandle[lastInstance];
 	}
+
 #pragma endregion
 
 private:
@@ -195,71 +197,3 @@ private:
 	PaginatedVector<ComponentInstance> m_entities_to_components;
 };
 
-
-#pragma region ComponentHandles
-
-template<typename C>
-class ComponentHandle;
-
-template<>
-class ComponentHandle<Transform>
-{
-public:
-	ComponentPool<Transform>& mgr;
-	ComponentInstance instance;
-
-public:
-	ComponentHandle() = default;
-
-	ComponentHandle(ComponentPool<Transform>& mgr, ComponentInstance instance)
-		: mgr(mgr)
-		, instance(instance)
-	{}
-
-	inline int& x()  { return mgr.getMemberBuffer<0>(instance); }
-	inline int& y()  { return mgr.getMemberBuffer<1>(instance); }
-	inline int& w()  { return mgr.getMemberBuffer<2>(instance); }
-	inline int& h()  { return mgr.getMemberBuffer<3>(instance); }
-
-};
-
-template<>
-class ComponentHandle<Color>
-{
-public:
-	ComponentPool<Color>& mgr;
-	ComponentInstance instance;
-
-public:
-	ComponentHandle() = default;
-
-	ComponentHandle(ComponentPool<Color>& mgr, ComponentInstance instance)
-		: mgr(mgr)
-		, instance(instance)
-	{}
-
-	inline char& r() { return mgr.getMemberBuffer<0>(instance); }
-	inline char& g() { return mgr.getMemberBuffer<1>(instance); }
-	inline char& b() { return mgr.getMemberBuffer<2>(instance); }
-	inline char& a() { return mgr.getMemberBuffer<3>(instance); }
-};
-
-template<>
-class ComponentHandle<Velocity>
-{
-public:
-	ComponentPool<Velocity>& mgr;
-	ComponentInstance instance;
-
-public:
-	ComponentHandle() = default;
-
-	ComponentHandle(ComponentPool<Velocity>& mgr, ComponentInstance instance)
-		: mgr(mgr)
-		, instance(instance)
-	{}
-
-	inline int& x() { return mgr.getMemberBuffer<0>(instance); }
-	inline int& y() { return mgr.getMemberBuffer<1>(instance); }
-};
-#pragma endregion

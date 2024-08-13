@@ -1,7 +1,7 @@
 #pragma once
 #include "ComponentPool.h"
+#include "ComponentHandles.h"
 #include "Common.h"
-#include "System.h"
 #include <queue>
 
 template<typename ... Ts>
@@ -10,14 +10,16 @@ class Registry
 
 private:
 	static constexpr size_t REGISTERED_COMPONENTS = sizeof...(Ts);
-	std::vector<System<Ts...>*> systems;
+	using Signature = std::bitset<REGISTERED_COMPONENTS>;
+
 	std::vector<std::unique_ptr<BaseComponentPool>> componentPools; // type erasure
 	std::queue<EntityID> availableIDs;
 	std::vector<Signature> entities_to_signatures;
-public:
 	std::unordered_map<Signature, std::vector<EntityID>> m_entities;
 
-	/// Creates the component manager vector from the templated arguments
+public:
+
+	/// Creates the component pools from the templated arguments
 	Registry()
 		:entities_to_signatures(MAX_ENTITIES)
 	{
@@ -29,43 +31,12 @@ public:
 		createComponentPools<Ts...>();
 	}
 
-	void initialize()
-	{
-		/// Create systems and the components required to operate before init
-		for (auto& system : systems)
-		{
-			system->init();
-		}
-	}
-
-	void update()
-	{
-		for (auto& system : systems)
-		{
-			system->update();
-		}
-	}
-
-	void display(SDL_Renderer* renderer)
-	{
-		systems.back()->render(renderer);
-	}
-
 	EntityID createEntity()
 	{
 		/// generate new id to be used from the queue
 		size_t new_id = availableIDs.front();
 		availableIDs.pop();
 		return new_id;
-	}
-
-	/// To be called before init
-	template<typename T>
-	void registerSystem(T& system)
-	{
-		static_assert(std::is_base_of<System<Ts...>, T>::value == true && std::is_same<System<Ts...>, T>::value == false && "System is not inhereting from the base class");
-
-		systems.push_back(&system);
 	}
 
 	void destroyEntity(EntityID e)
@@ -87,6 +58,7 @@ public:
 		}
 	}
 
+
 	template<typename C, typename ... Args>
 	void addComponent(EntityID eID, Args&& ... args)
 	{
@@ -101,19 +73,14 @@ public:
 	template<typename ... Cs, typename F>
 	void ForEach(F&& function)
 	{
-		Signature targetBitset = utils::createSystemSignatures<Cs...>();
-		std::vector<std::vector<EntityID>*> entityVecs;
+		Signature targetBitset = createSignature<Cs...>();
 		for (auto& [bitset, entityVec] : m_entities)
 		{
-			if ((bitset & targetBitset) == targetBitset)
+			if ((bitset & targetBitset) != targetBitset)
 			{
-				entityVecs.push_back(&entityVec);
+				continue;
 			}
-		}
-
-		for (auto& vec: entityVecs)
-		{
-			for (auto entityID : *vec)
+			for (auto entityID : entityVec)
 			{
 				auto t = unpack<Cs...>(entityID);
 				std::apply(function, t);
@@ -166,6 +133,15 @@ private:
 		{
 			createComponentPools<Tails...>();
 		}
+	}
+
+	template<typename ... Cs>
+	inline Signature createSignature()
+	{
+		Signature signatures;
+
+		(signatures.set(GetComponentFamily<Cs>()), ...);
+		return signatures;
 	}
 
 	template<typename C>

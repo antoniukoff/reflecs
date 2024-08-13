@@ -4,7 +4,7 @@
 
 #pragma region Test1
 
-EntityID generateEntityWithRectangle(Registry<Transform, Velocity, Color>& registry)
+void generateEntityWithRectangle(Registry<Transform, Velocity, Color>& registry)
 {
     static std::random_device randomEngine;
     static std::uniform_real_distribution<float> randomGenerator(0, 800);
@@ -19,7 +19,6 @@ EntityID generateEntityWithRectangle(Registry<Transform, Velocity, Color>& regis
     registry.addComponent<Transform>(eID, randPosX, randPosY > 600 ? 600 : randPosY, 50, 50);
     registry.addComponent<Color>(eID, randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1));
     registry.addComponent<Velocity>(eID, randomGenerator1(randomEngine1), randomGenerator1(randomEngine1));
-    return eID;
 }
 
 
@@ -82,12 +81,39 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        registry.ForEach<Transform, Velocity>([&registry](ComponentHandle<Transform> transform, ComponentHandle<Velocity> velocity)
+            {
+                velocity.x() *= 0.98f;
+                velocity.y() *= 0.98f;
+                transform.x() += velocity.x();
+                transform.y() += velocity.y();
+
+                // Reverse direction if the entity hits the left or right bounds
+                if (transform.x() < 0) {
+                    transform.x() = 0;
+                    velocity.x() = -velocity.x(); // Reverse horizontal direction
+                }
+                else if (transform.x() + transform.w() > 800) {
+                    transform.x() = 800 - transform.w();
+                    velocity.x() = -velocity.x(); // Reverse horizontal direction
+                }
+
+                // Reverse direction if the entity hits the top or bottom bounds
+                if (transform.y() < 0) {
+                    transform.y() = 0;
+                    velocity.y() = -velocity.y(); // Reverse vertical direction
+                }
+                else if (transform.y() + transform.h() > 600) {
+                    transform.y() = 600 - transform.h();
+                    velocity.y() = -velocity.y(); // Reverse vertical direction
+                }
+            });
 
         SDL_RenderClear(renderer);
 
-        registry.ForEach<Transform, Color>([renderer](ComponentHandle<Transform>& transform, ComponentHandle<Color>& color)
+        registry.ForEach<Transform, Color>([renderer](ComponentHandle<Transform> transform, ComponentHandle<Color> color)
             {
-                SDL_Rect rect{
+                SDL_FRect rect{
                     .x = transform.x(),
                     .y = transform.y(),
                     .w = transform.w(),
@@ -99,10 +125,10 @@ int main(int argc, char* argv[]) {
                                                  color.b(),
                                                  color.a());
 
-                SDL_RenderFillRect(renderer, &rect);
+                SDL_RenderFillRectF(renderer, &rect);
+
             });
         
-        //registry.display(renderer);
 
         SDL_SetRenderDrawColor(renderer, 54, 136, 177, 255);
         SDL_RenderPresent(renderer);
@@ -125,7 +151,6 @@ int main(int argc, char* argv[]) {
 #pragma endregion
 
 
-
 /*
 #pragma region Test2
 
@@ -142,6 +167,7 @@ using EntityID = size_t;
 // Struct to represent a rectangle with position and color
 struct Rectangle {
     int x, y, w, h;
+    int velx, vely;
     Uint8 r, g, b, a;
 };
 
@@ -153,12 +179,14 @@ Rectangle generateRectangle() {
 
     int x = randomPos(randomEngine);
     int y = randomPos(randomEngine);
+    int velx = randomPos(randomEngine);
+    int vely = randomPos(randomEngine);
     Uint8 r = randomColor(randomEngine);
     Uint8 g = randomColor(randomEngine);
     Uint8 b = randomColor(randomEngine);
     Uint8 a = randomColor(randomEngine);
 
-    return Rectangle{ x, y > 600 ? 600 : y, 50, 50, r, g, b, a };
+    return Rectangle{ x, y > 600 ? 600 : y, 50, 50, velx, vely, r, g, b, a };
 }
 
 // Function to draw a rectangle
@@ -225,6 +253,35 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+        for (auto& rect : rectangles)
+        {
+            rect.velx *= 0.98f;
+            rect.vely *= 0.98f;
+            rect.x += rect.velx;
+            rect.y += rect.vely;
+
+            // Reverse direction if the entity hits the left or right bounds
+            if (rect.x < 0) {
+                rect.x = 0;
+                rect.velx = -rect.velx; // Reverse horizontal direction
+            }
+            else if (rect.x + rect.w > 800) {
+                rect.x = 800 - rect.w;
+                rect.velx = -rect.velx; // Reverse horizontal direction
+            }
+
+            // Reverse direction if the entity hits the top or bottom bounds
+            if (rect.y < 0) {
+                rect.y = 0;
+                rect.vely = -rect.vely; // Reverse vertical direction
+            }
+            else if (rect.y + rect.h > 600) {
+                rect.y = 600 - rect.h;
+                rect.vely = -rect.vely; // Reverse vertical direction
+            }
+        }     
+
+
 
 
         SDL_RenderClear(renderer);

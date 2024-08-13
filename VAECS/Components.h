@@ -1,51 +1,10 @@
 #pragma once
 #include "Common.h"
+#include "utils.h"
+ 
+	using namespace utils::ComponentHelpers;
 
-#pragma region ComponentHelpers
-
-	template<typename... Ts>
-	struct TypeList {};
-
-	template<size_t Index, typename List>
-	struct GetTypeAtIndex;
-
-	/// Recursively get the desired type based on the index until it hits the 0th base case
-	template<size_t Index, typename Head, typename... Tail>
-	struct GetTypeAtIndex<Index, TypeList<Head, Tail...>> 
-	{
-		using Type = typename GetTypeAtIndex<Index - 1, TypeList<Tail...>>::Type;
-	};
-
-	/// Base case
-	template<typename Head, typename... Tail>
-	struct GetTypeAtIndex<0, TypeList<Head, Tail...>> 
-	{
-		using Type = Head;
-	};
-
-	/// Get type of component at index
-	template<size_t Index, typename ... Ts>
-	using ComponentTypeAtIndex = typename GetTypeAtIndex<Index, TypeList<Ts...>>::Type;
-
-	/// Compile-Time field count
-	template<typename ComponentType>
-	struct GetMemberCount;
-
-	/// Compile-Time field type based on its position within the struct
-	template<typename ComponentType, size_t N>
-	struct GetType;
-
-	/// Helps identify the correct type of the pointer of the field within a class
-	template<typename T, size_t N>
-	struct GetPointerToMemeberType
-	{
-		using Type = GetType<T, N>::Type T::*;// pointer to member
-	};
-	
-	/// Used to get the handle to the member within the pool
-	template<typename T, size_t N>
-	static typename GetPointerToMemeberType<T, N>::Type getPointerToMemeber() {};
-
+#pragma region Base
 	struct ComponentCounter
 	{
 		static int counter;
@@ -63,9 +22,9 @@
 			static int family = ComponentCounter::counter++;
 			return family;
 		}
-		
+
 	};
-	
+
 	/// Used to identify the index of the component manager 
 	/// in the component manager vector in the world
 	template<typename C>
@@ -73,28 +32,23 @@
 	{
 		return BaseComponent<typename std::remove_const<C>::type>::family();
 	}
-
 #pragma endregion
 
-	
-
-#pragma region Components
-
-	/// Components must follow the provided template below for ecs to work properly
+	/// IMPORTANT: Components must follow the provided template below for ecs to work properly
 
 	struct Transform : BaseComponent<Transform>
 	{
-		Transform(int x, int y, int w, int h)
+		Transform(float x, float y, float w, float h)
 			: x(x)
 			, y(y)
 			, w(w)
 			, h(h)
 		{}
 		/// Data
-		int x = {};
-		int y = {};
-		int w = {};
-		int h = {};
+		float x = {};
+		float y = {};
+		float w = {};
+		float h = {};
 	};
 
 	template<> struct GetMemberCount<Transform>
@@ -104,39 +58,39 @@
 
 	template<> struct GetType<Transform, 0>
 	{
-		using Type = int;
+		using Type = float;
 	};
 
 	template<> struct GetType<Transform, 1>
 	{
-		using Type = int;
+		using Type = float;
 	};
 
 	template<> struct GetType<Transform, 2>
 	{
-		using Type = int;
+		using Type = float;
 	};
 
 	template<> struct GetType<Transform, 3>
 	{
-		using Type = int;
+		using Type = float;
 	};
 
-	template<> typename GetPointerToMemeberType<Transform, 0>::Type getPointerToMemeber<Transform, 0>() { return &Transform::x; }
-	template<> typename GetPointerToMemeberType<Transform, 1>::Type getPointerToMemeber<Transform, 1>() { return &Transform::y; }
-	template<> typename GetPointerToMemeberType<Transform, 2>::Type getPointerToMemeber<Transform, 2>() { return &Transform::w; }
-	template<> typename GetPointerToMemeberType<Transform, 3>::Type getPointerToMemeber<Transform, 3>() { return &Transform::h; }
+	template<> typename GetPointerToMemeberType<Transform, 0>::Type utils::ComponentHelpers::GetPointerToMemeber<Transform, 0>() { return &Transform::x; }
+	template<> typename GetPointerToMemeberType<Transform, 1>::Type utils::ComponentHelpers::GetPointerToMemeber<Transform, 1>() { return &Transform::y; }
+	template<> typename GetPointerToMemeberType<Transform, 2>::Type utils::ComponentHelpers::GetPointerToMemeber<Transform, 2>() { return &Transform::w; }
+	template<> typename GetPointerToMemeberType<Transform, 3>::Type utils::ComponentHelpers::GetPointerToMemeber<Transform, 3>() { return &Transform::h; }
 
 
 	struct Velocity : BaseComponent<Velocity>
 	{
-		Velocity(int x, int y)
+		Velocity(float x, float y)
 			: x(x)
 			, y(y)
 		{}
 		/// Data
-		int x = {};
-		int y = {};
+		float x = {};
+		float y = {};
 	};
 
 	template<> struct GetMemberCount<Velocity>
@@ -146,16 +100,16 @@
 
 	template<> struct GetType<Velocity, 0>
 	{
-		using Type = int;
+		using Type = float;
 	};
 
 	template<> struct GetType<Velocity, 1>
 	{
-		using Type = int;
+		using Type = float;
 	};
 
-	template<> typename GetPointerToMemeberType<Velocity, 0>::Type getPointerToMemeber<Velocity, 0>() { return &Velocity::x; }
-	template<> typename GetPointerToMemeberType<Velocity, 1>::Type getPointerToMemeber<Velocity, 1>() { return &Velocity::y; }
+	template<> typename GetPointerToMemeberType<Velocity, 0>::Type utils::ComponentHelpers::GetPointerToMemeber<Velocity, 0>() { return &Velocity::x; }
+	template<> typename GetPointerToMemeberType<Velocity, 1>::Type utils::ComponentHelpers::GetPointerToMemeber<Velocity, 1>() { return &Velocity::y; }
 	
 
 	struct Color : public BaseComponent<Color>
@@ -198,10 +152,9 @@
 		using Type = char;
 	};
 
-	template<> typename GetPointerToMemeberType<Color, 0>::Type getPointerToMemeber<Color, 0>() { return &Color::r; }
-	template<> typename GetPointerToMemeberType<Color, 1>::Type getPointerToMemeber<Color, 1>() { return &Color::g; }
-	template<> typename GetPointerToMemeberType<Color, 2>::Type getPointerToMemeber<Color, 2>() { return &Color::b; }
-	template<> typename GetPointerToMemeberType<Color, 3>::Type getPointerToMemeber<Color, 3>() { return &Color::a; }
+	template<> typename GetPointerToMemeberType<Color, 0>::Type utils::ComponentHelpers::GetPointerToMemeber<Color, 0>() { return &Color::r; }
+	template<> typename GetPointerToMemeberType<Color, 1>::Type utils::ComponentHelpers::GetPointerToMemeber<Color, 1>() { return &Color::g; }
+	template<> typename GetPointerToMemeberType<Color, 2>::Type utils::ComponentHelpers::GetPointerToMemeber<Color, 2>() { return &Color::b; }
+	template<> typename GetPointerToMemeberType<Color, 3>::Type utils::ComponentHelpers::GetPointerToMemeber<Color, 3>() { return &Color::a; }
 
-#pragma endregion
 

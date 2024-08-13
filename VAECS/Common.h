@@ -13,9 +13,7 @@
 using EntityID = std::size_t;
 using ComponentInstance = std::size_t;
 
-constexpr size_t MAX_COMPONENTS_SIZE = 3;
 constexpr size_t MAX_ENTITIES = 50000;
 constexpr size_t CONTAINER_SIZE = MAX_ENTITIES + 1;
 constexpr size_t PAGE_SIZE = 1024;
 
-using Signature = std::bitset<MAX_COMPONENTS_SIZE>;

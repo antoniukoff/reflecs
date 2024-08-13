@@ -156,10 +156,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
+    <ClInclude Include="ComponentHandles.h" />
     <ClInclude Include="Components.h" />
     <ClInclude Include="ComponentPool.h" />
     <ClInclude Include="Registry.h" />
-    <ClInclude Include="System.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
