@@ -73,7 +73,7 @@ namespace utils
 		template<typename T, size_t N>
 		struct get_pointer_to_member_type
 		{
-			using type = get_type<T, N>::type T::*;// pointer to member
+			using type = typename get_type<T, N>::type T::*;// pointer to member
 		};
 
 		/// Used to get the handle to the member within the pool

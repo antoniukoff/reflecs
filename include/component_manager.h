@@ -117,7 +117,7 @@ public:
 	template<size_t index>
 	typename get_type<C, index>::type& get_member_buffer(entity_id component_instance)
 	{
-		using data_type = get_type<C, index>::type;
+		using data_type = typename get_type<C, index>::type;
 
 		std::array<data_type, g_container_size>& arr = *static_cast<std::array<data_type, g_container_size>*>(m_component_pool.buffer[index]);
 		return arr[component_instance];
@@ -175,7 +175,7 @@ private:
 	template<size_t index>
 	void generate_buffers(void* buffer[], size_t num_elements)
 	{
-		using data_type = get_type<C, index>::type;
+		using data_type = typename get_type<C, index>::type;
 		buffer[index + 1] = static_cast<data_type*>(buffer[index]) + num_elements;
 
 		char* previous_address = (char*)buffer[index];
@@ -245,7 +245,7 @@ private:
 	template<size_t index>
 	void add_component_data(component_instance instance_to_add, C& component)
 	{
-		using data_type = get_type<C, index>::type;
+		using data_type = typename get_type<C, index>::type;
 
 		std::array<data_type, g_container_size>& array_handle = *static_cast<std::array<data_type, g_container_size>*>(m_component_pool.buffer[index]);
 
@@ -273,7 +273,7 @@ private:
 	template<size_t index>
 	void remove_component_data(component_instance instance_to_remove, component_instance replacing_instance)
 	{
-		using data_type = get_type<C, index>::type;
+		using data_type = typename get_type<C, index>::type;
 		std::array<data_type, g_container_size>& array_handle = *static_cast<std::array<data_type, g_container_size>*>(m_component_pool.buffer[index]);
 
 		array_handle[instance_to_remove] = array_handle[replacing_instance];

@@ -160,7 +160,7 @@ private:
 	void update_mask(entity_id e_id, bool add)
 	{
 		auto s = m_entities_to_signatures[e_id];
-		std::erase(m_entities[s], e_id);
+		m_entities[s].erase(std::remove(m_entities[s].begin(), m_entities[s].end(), e_id), m_entities[s].end());
 		s.set(get_component_type_id<C, Cs...>(), add);
 		m_entities_to_signatures[e_id] = s;
 		m_entities[s].push_back(e_id);
