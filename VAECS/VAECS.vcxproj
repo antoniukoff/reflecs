@@ -155,16 +155,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Common.h" />
-    <ClInclude Include="ComponentHandles.h" />
-    <ClInclude Include="Components.h" />
-    <ClInclude Include="ComponentPool.h" />
-    <ClInclude Include="Registry.h" />
-    <ClInclude Include="utils.h" />
+    <ClInclude Include="reflecs\common.h" />
+    <ClInclude Include="reflecs\component_manager.h" />
+    <ClInclude Include="reflecs\registry.h" />
+    <ClInclude Include="reflecs\utility.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="PaginatedVector.h" />
+    <ClCompile Include="example.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

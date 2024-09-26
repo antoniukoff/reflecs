@@ -10,10 +10,9 @@
 #include <vector>
 #include <optional>
 
-using EntityID = std::size_t;
-using ComponentInstance = std::size_t;
+using entity_id = std::size_t;
+using component_instance = std::size_t;
 
-constexpr size_t MAX_ENTITIES = 50000;
-constexpr size_t CONTAINER_SIZE = MAX_ENTITIES + 1;
-constexpr size_t PAGE_SIZE = 1024;
+constexpr size_t g_max_entities = 50000;
+constexpr size_t g_container_size = g_max_entities + 1;
 
