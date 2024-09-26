@@ -2,7 +2,6 @@
 #include <string>
 #include <iostream>
 #include "common.h"
-#include <SDL.h>
 
 namespace utils
 {

@@ -1,5 +1,5 @@
 #include <random>
-#include "reflecs/registry.h"
+#include "include/registry.h"
 
 using namespace utils::component_helpers;
 
