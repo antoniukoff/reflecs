@@ -12,7 +12,7 @@ There are a lot of ECS frameworks out there that are far more sophisticated and 
 - **Compile-Time Reflection**: Components are analyzed and managed at compile time leveraging C++ 17 features and metaprogramming.
 - **Sparse Sets**: O(1) data unpacking, addition and removal, even with a large number of entities.
 - **Field-Level SOA**: Component's fields are stored in their own contiguous memory pool, which improves cache locality and performance when accessing components.
-- **No Run-Time:** The framework has virtually no run-time except to erase types of arbitrary components.
+- **No Run-Time:** The framework has no run-time.
 ## Requirements
 
 - **C++17 or later**: Reflecs requires a modern C++ compiler.
