@@ -151,7 +151,7 @@ Contributions are welcome! If you find a bug or have a feature request, please o
 
 ## Credits
 
-This project was inspired by [NomadEcs](https://github.com/taurheim/NomadECS) and [@codingwithmat]([https://github.com/SanderMertens/flecs](https://www.youtube.com/@codingwithmat)).
+This project was inspired by [NomadECS](https://github.com/taurheim/NomadECS) and [Coding With Mat](https://www.youtube.com/@codingwithmat).
 
 
 
