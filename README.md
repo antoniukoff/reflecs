@@ -4,13 +4,13 @@
 ## Overview
 Reflecs is my personal take on building a fast and efficient ECS (Entity Component System) header-only framework for C++. 
 
-
 ## Why I Built This
-There are a lot of ECS frameworks out there that are far more sophisticated and extensive like [EnTT](https://github.com/skypjack/entt) or [Flecs](https://github.com/SanderMertens/flecs). However, I wanted something fast and lightweight that avoids the overhead of run-time polymorphism, and data scattering and that would fit my personal needs. My goal was to make the most out of the cache's performance and provide an easy and user-friendly interface to be used in the next projects.
+I built Reflecs primarily as a learning project to better understand how data layout affects application performance. I aimed to create something fast and lightweight that met my needs while avoiding the overhead of runtime polymorphism and data scattering. The end goal was to maximize cache efficiency and provide a simple, user-friendly interface for future projects.
+
 ## Key Features
 - **Header-Only Library**: Just include the headers and you’re ready to go.
 - **Compile-Time Reflection**: Components are analyzed and managed at compile time leveraging C++ 17 features and metaprogramming.
-- **Sparse Sets**: O(1) data unpacking, addition and removal, even with a large number of entities.
+- **Sparse Sets**: O(1) data unpacking, addition, and removal, even with a large number of entities.
 - **Field-Level SOA**: Component's fields are stored in their own contiguous memory pool, which improves cache locality and performance when accessing components.
 - **No Run-Time:** The framework has no run-time.
 ## Requirements
@@ -63,7 +63,7 @@ template<> inline typename get_pointer_to_member_type<movement_component, 1>::ty
 
 ### Managing Entities and Components
 
-Registry provide the following methods to manage entities:
+Registry provides the following methods to manage entities:
 
 - **`create`**: Creates an entity.
 - **`add`**: Adds a component to an entity.
@@ -73,7 +73,7 @@ Registry provide the following methods to manage entities:
 
 #### Creating an entity
 
-To ```create``` an entity simly follow:
+To ```create``` an entity simply follow:
 
 ```cpp
 auto entity = registry.create_entity(); // Returns a new entity id
@@ -108,7 +108,7 @@ registry.destroy(entity);  // Destroys the entity and all its components
 
 #### Unpacking Components
 
-You can ```unpack``` multiple components from a single entity using tuple-like syntax:
+You can ```unpack``` multiple components from a single entity using the tuple-like syntax:
 
 ```cpp
 auto [hc, vc] = registry.unpack<health_component, velocity_component>(entity);
@@ -121,7 +121,7 @@ vc.x() += 1.0f;
 
 #### Processing Entities
 
-The ```for_each``` method lets you iterate over entities that at least the specified set of components. Here’s an example where we reduce the health of each entity:
+The ```for_each``` method lets you iterate over entities that have at least the specified set of components. Here’s an example where we reduce the health of each entity:
 
 ```cpp
 registry.for_each<health_component>([](entity_id id, component_handle<health_component> hc)
