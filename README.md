@@ -61,6 +61,26 @@ template<> inline typename get_pointer_to_member_type<movement_component, 1>::ty
 ```
 > **Note:** Dynamic types such as `std::vector`, `std::string`, or other heap-allocated types are not directly supported. However, you can use pointers to dynamic types within components if necessary.
 
+Now, specialize a ```component_handle``` to manage access to the ```health_component``` data through the ```component_pool```:
+```cpp
+template<>
+class component_handle<health_component>
+{
+public:
+    component_pool<health_component>& mgr;
+    component_instance instance;
+
+public:
+    component_handle() = default;
+
+    component_handle(component_pool<health_component>& mgr, component_instance instance)
+        : mgr(mgr), instance(instance) {}
+
+    inline int& health() { return mgr.get_member_buffer<0>(instance); }
+    inline int& max_health() { return mgr.get_member_buffer<1>(instance); }
+};
+
+```
 ### Managing Entities and Components
 
 Registry provides the following methods to manage entities:
@@ -75,7 +95,7 @@ Registry provides the following methods to manage entities:
 
 To create a registry, instantiate the `registry` class like so:
 
-```
+```cpp
 // Define a type list with components
 using component_types = type_list<health_component, velocity_component>;
 
