@@ -149,9 +149,5 @@ registry.for_each<health_component>([](entity_id id, component_handle<health_com
 
 Contributions are welcome! If you find a bug or have a feature request, please open an issue or submit a pull request.
 
-## Credits
-
-This project was inspired by [NomadECS](https://github.com/taurheim/NomadECS) and [Coding With Mat](https://www.youtube.com/@codingwithmat).
-
 
 
