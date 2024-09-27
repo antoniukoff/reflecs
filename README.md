@@ -12,7 +12,6 @@ I built Reflecs primarily as a learning project to better understand how data la
 - **Compile-Time Reflection**: Components are analyzed and managed at compile time leveraging C++ 17 features and metaprogramming.
 - **Sparse Sets**: O(1) data unpacking, addition, and removal, even with a large number of entities.
 - **Field-Level SOA**: Component's fields are stored in their own contiguous memory pool, which improves cache locality and performance when accessing components.
-- **No Run-Time:** The framework has no run-time.
 ## Requirements
 
 - **C++17 or later**: Reflecs requires a modern C++ compiler.
@@ -71,6 +70,18 @@ Registry provides the following methods to manage entities:
 - **`remove`**: Removes a component from an entity.
 - **`destroy`**: Deletes an entity and all its components.
 - **`unpack`**: Unpacks multiple components for an entity using tuple-like syntax.
+
+#### Creating a registry
+
+To create a registry, instantiate the `registry` class like so:
+
+```
+// Define a type list with components
+using component_types = type_list<health_component, velocity_component>;
+
+// Create a registry that can handle health_component and velocity_component
+registry<component_types> my_registry;
+```
 
 #### Creating an entity
 
@@ -134,7 +145,13 @@ registry.for_each<health_component>([](entity_id id, component_handle<health_com
     }
 });
 ```
+## Contributing
 
+Contributions are welcome! If you find a bug or have a feature request, please open an issue or submit a pull request.
+
+## Credits
+
+This project was inspired by [NomadEcs](https://github.com/taurheim/NomadECS) and [@codingwithmat]([https://github.com/SanderMertens/flecs](https://www.youtube.com/@codingwithmat)).
 
 
 
