@@ -57,8 +57,8 @@ template<> struct get_type<health_component, 0> { using type = int; };
 template<> struct get_type<health_component, 1> { using type = int; };
 
 // Provide pointers to the component's members
-template<> inline auto get_pointer_to_member<health_component, 0>() { return &health_component::health; }
-template<> inline auto get_pointer_to_member<health_component, 1>() { return &health_component::max_health; }
+template<> inline typename get_pointer_to_member_type<movement_component, 0>::type get_pointer_to_member<health_component, 0>() { return &health_component::health; }
+template<> inline typename get_pointer_to_member_type<movement_component, 1>::type get_pointer_to_member<health_component, 1>() { return &health_component::max_health; }
 ```
 
 ### Managing Entities and Components
