@@ -60,6 +60,7 @@ template<> struct get_type<health_component, 1> { using type = int; };
 template<> inline typename get_pointer_to_member_type<movement_component, 0>::type get_pointer_to_member<health_component, 0>() { return &health_component::health; }
 template<> inline typename get_pointer_to_member_type<movement_component, 1>::type get_pointer_to_member<health_component, 1>() { return &health_component::max_health; }
 ```
+> **Note:** Dynamic types such as `std::vector`, `std::string`, or other heap-allocated types are not directly supported. However, you can use pointers to dynamic types within components if necessary.
 
 ### Managing Entities and Components
 
@@ -79,7 +80,7 @@ To ```create``` an entity simply follow:
 auto entity = registry.create_entity(); // Returns a new entity id
 ```
 
-- *Note:* You can set maximum number entities in the ```common.h``` file for large scale environments
+> **Note:** You can set maximum number entities in the ```common.h``` file for large scale environments
 
 #### Adding Components
 
