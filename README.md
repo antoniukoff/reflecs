@@ -40,6 +40,8 @@ Here's an example of a simple `health_component` with two fields: `health` and `
 
 ```cpp
 // components.cpp
+
+using namespace reflecs::component_reflection;
 struct health_component
 {
     int health;
@@ -56,8 +58,8 @@ template<> struct get_type<health_component, 0> { using type = int; };
 template<> struct get_type<health_component, 1> { using type = int; };
 
 // Provide pointers to the component's members
-template<> inline typename get_pointer_to_member_type<health_component, 0>::type get_pointer_to_member<health_component, 0>() { return &health_component::health; }
-template<> inline typename get_pointer_to_member_type<health_component, 1>::type get_pointer_to_member<health_component, 1>() { return &health_component::max_health; }
+template<> inline typename get_pointer_to_member_type<health_component, 0>::type reflecs::component_reflection::get_pointer_to_member<health_component, 0>() { return &health_component::health; }
+template<> inline typename get_pointer_to_member_type<health_component, 1>::type reflecs::component_reflection::get_pointer_to_member<health_component, 1>() { return &health_component::max_health; }
 ```
 > **Note:** Dynamic types such as `std::vector`, `std::string`, or other heap-allocated types are not directly supported. However, you can use pointers to dynamic types within components if necessary.
 
@@ -67,13 +69,13 @@ template<>
 class component_handle<health_component>
 {
 public:
-    component_pool<health_component>& mgr;
+    component_manager<health_component>& mgr;
     component_instance instance;
 
 public:
     component_handle() = default;
 
-    component_handle(component_pool<health_component>& mgr, component_instance instance)
+    component_handle(component_manager<health_component>& mgr, component_instance instance)
         : mgr(mgr), instance(instance) {}
 
     inline int& health() { return mgr.get_member_buffer<0>(instance); }
@@ -85,22 +87,20 @@ public:
 
 Registry provides the following methods to manage entities:
 
-- **`create`**: Creates an entity.
+- **`create_entity`**: Creates an entity.
 - **`add`**: Adds a component to an entity.
 - **`remove`**: Removes a component from an entity.
 - **`destroy`**: Deletes an entity and all its components.
 - **`unpack`**: Unpacks multiple components for an entity using tuple-like syntax.
+- **`for_each`**: Applies a function to entities with certain components.
 
 #### Creating a registry
 
 To create a registry, instantiate the `registry` class like so:
 
 ```cpp
-// Define a type list with components
-using component_types = type_list<health_component, velocity_component>;
-
 // Create a registry that can handle health_component and velocity_component
-registry<component_types> my_registry;
+registry<health_component, velocity_component> my_registry;
 ```
 
 #### Creating an entity
@@ -153,7 +153,7 @@ vc.x() += 1.0f;
 
 #### Processing Entities
 
-The ```for_each``` method lets you iterate over entities that have at least the specified set of components. Here’s an example where we reduce the health of each entity:
+The ```for_each``` method lets you iterate over entities with at least the specified set of components. Here’s an example where we reduce the health of each entity:
 
 ```cpp
 registry.for_each<health_component>([](entity_id id, component_handle<health_component> hc)
