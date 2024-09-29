@@ -30,7 +30,7 @@ Or simply download it from under the [Releases](https://github.com/antoniukoff/r
 Then include the main header in your project:
 
 ```cpp
-#include "reflecs(-main)/include/registry.h"
+#include "reflecs/include/registry.h"
 ```
 ## Usage
 
