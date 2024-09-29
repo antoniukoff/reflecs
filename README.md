@@ -25,7 +25,7 @@ To integrate Reflecs into your project, clone the repository into your project d
 ```bash
 git clone https://github.com/antoniukoff/reflecs.git
 ```
-Or simply download it from under the ```Releases``` section.
+Or simply download it from under the [Releases](https://github.com/antoniukoff/reflecs/releases/tag/initial-release) section.
 
 Then include the main header in your project:
 
