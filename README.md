@@ -56,8 +56,8 @@ template<> struct get_type<health_component, 0> { using type = int; };
 template<> struct get_type<health_component, 1> { using type = int; };
 
 // Provide pointers to the component's members
-template<> inline typename get_pointer_to_member_type<movement_component, 0>::type get_pointer_to_member<health_component, 0>() { return &health_component::health; }
-template<> inline typename get_pointer_to_member_type<movement_component, 1>::type get_pointer_to_member<health_component, 1>() { return &health_component::max_health; }
+template<> inline typename get_pointer_to_member_type<health_component, 0>::type get_pointer_to_member<health_component, 0>() { return &health_component::health; }
+template<> inline typename get_pointer_to_member_type<health_component, 1>::type get_pointer_to_member<health_component, 1>() { return &health_component::max_health; }
 ```
 > **Note:** Dynamic types such as `std::vector`, `std::string`, or other heap-allocated types are not directly supported. However, you can use pointers to dynamic types within components if necessary.
 
