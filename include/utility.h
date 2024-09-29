@@ -3,9 +3,9 @@
 #include <iostream>
 #include "common.h"
 
-namespace utils
+namespace reflecs
 {
-	namespace compile_loop
+	namespace constexpr_loop
 	{
 		template<size_t Iterations, template<size_t Index> typename FunctionToExecuteWrapperClass, typename Parent, typename ... Args>
 		struct for_each
@@ -35,7 +35,28 @@ namespace utils
 		}
 	}
 
-	namespace component_helpers
+	namespace component_reflection
+	{
+		/// Compile-Time field count
+		template<typename ComponentType>
+		struct get_member_count;
+
+		/// Compile-Time field type based on its position within the struct
+		template<typename ComponentType, size_t N>
+		struct get_type;
+
+		/// Helps identify the correct type of the pointer of the field within a class
+		template<typename T, size_t N>
+		struct get_pointer_to_member_type
+		{
+			using type = typename get_type<T, N>::type T::*;// pointer to member
+		};
+
+		/// Used to get the handle to the member within the pool
+		template<typename T, size_t N>
+		typename get_pointer_to_member_type<T, N>::type get_pointer_to_member() {};
+	}
+	namespace type_utils
 	{
 		template<typename... Ts>
 		struct type_list {};
@@ -61,23 +82,31 @@ namespace utils
 		template<size_t Index, typename ... Ts>
 		using component_type_at_index = typename get_type_at_index<Index, type_list<Ts...>>::type;
 
-		/// Compile-Time field count
-		template<typename ComponentType>
-		struct get_member_count;
-
-		/// Compile-Time field type based on its position within the struct
-		template<typename ComponentType, size_t N>
-		struct get_type;
-
-		/// Helps identify the correct type of the pointer of the field within a class
-		template<typename T, size_t N>
-		struct get_pointer_to_member_type
+		/**
+	 * @brief Returns the index of the component in the component list
+	 * @tparam C Component
+	 * @tparam Head First component in the list
+	 * @tparam Tail Remaining components
+	 * @param index Index of the component
+	*/
+		template<typename C, typename Head, typename ... Tail>
+		constexpr size_t get_component_type_id(size_t index = 0)
 		{
-			using type = typename get_type<T, N>::type T::*;// pointer to member
-		};
-
-		/// Used to get the handle to the member within the pool
-		template<typename T, size_t N>
-		typename get_pointer_to_member_type<T, N>::type get_pointer_to_member() {};
+			if constexpr (std::is_same<C, Head>::value)
+			{
+				return index;
+			}
+			else
+			{
+				if constexpr (sizeof...(Tail) > 0)
+				{
+					return get_component_type_id<C, Tail...>(++index);
+				}
+				else
+				{
+					return -1; /// compile-error
+				}
+			}
+		}
 	}
 }

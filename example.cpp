@@ -1,7 +1,7 @@
 #include <random>
 #include "include/registry.h"
 
-using namespace utils::component_helpers;
+using namespace reflecs::component_reflection;
 
 #pragma region HOW TO DEFINE A COMPONENT
 
@@ -58,10 +58,10 @@ using namespace utils::component_helpers;
 
     /// Specialize the get_pointer_to_member function for all the members of the component
 
-    template<> inline typename get_pointer_to_member_type<transform, 0>::type utils::component_helpers::get_pointer_to_member<transform, 0>() { return &transform::x; }
-    template<> inline typename get_pointer_to_member_type<transform, 1>::type utils::component_helpers::get_pointer_to_member<transform, 1>() { return &transform::y; }
-    template<> inline typename get_pointer_to_member_type<transform, 2>::type utils::component_helpers::get_pointer_to_member<transform, 2>() { return &transform::w; }
-    template<> inline typename get_pointer_to_member_type<transform, 3>::type utils::component_helpers::get_pointer_to_member<transform, 3>() { return &transform::h; }
+    template<> inline typename get_pointer_to_member_type<transform, 0>::type reflecs::component_reflection::get_pointer_to_member<transform, 0>() { return &transform::x; }
+    template<> inline typename get_pointer_to_member_type<transform, 1>::type reflecs::component_reflection::get_pointer_to_member<transform, 1>() { return &transform::y; }
+    template<> inline typename get_pointer_to_member_type<transform, 2>::type reflecs::component_reflection::get_pointer_to_member<transform, 2>() { return &transform::w; }
+    template<> inline typename get_pointer_to_member_type<transform, 3>::type reflecs::component_reflection::get_pointer_to_member<transform, 3>() { return &transform::h; }
 
 	/// IMPORTANT: The following specialization for the component_handle struct is required to get the member handles
 
@@ -111,8 +111,8 @@ using namespace utils::component_helpers;
         using type = float;
     };
 
-    template<> inline typename get_pointer_to_member_type<velocity, 0>::type utils::component_helpers::get_pointer_to_member<velocity, 0>() { return &velocity::x; }
-    template<> inline typename get_pointer_to_member_type<velocity, 1>::type utils::component_helpers::get_pointer_to_member<velocity, 1>() { return &velocity::y; }
+    template<> inline typename get_pointer_to_member_type<velocity, 0>::type reflecs::component_reflection::get_pointer_to_member<velocity, 0>() { return &velocity::x; }
+    template<> inline typename get_pointer_to_member_type<velocity, 1>::type reflecs::component_reflection::get_pointer_to_member<velocity, 1>() { return &velocity::y; }
 
     template<>
     struct component_handle<velocity>
@@ -166,10 +166,10 @@ using namespace utils::component_helpers;
         using type = char;
     };
 
-    template<> inline typename get_pointer_to_member_type<color_component, 0>::type utils::component_helpers::get_pointer_to_member<color_component, 0>() { return &color_component::r; }
-    template<> inline typename get_pointer_to_member_type<color_component, 1>::type utils::component_helpers::get_pointer_to_member<color_component, 1>() { return &color_component::g; }
-    template<> inline typename get_pointer_to_member_type<color_component, 2>::type utils::component_helpers::get_pointer_to_member<color_component, 2>() { return &color_component::b; }
-    template<> inline typename get_pointer_to_member_type<color_component, 3>::type utils::component_helpers::get_pointer_to_member<color_component, 3>() { return &color_component::a; }
+    template<> inline typename get_pointer_to_member_type<color_component, 0>::type reflecs::component_reflection::get_pointer_to_member<color_component, 0>() { return &color_component::r; }
+    template<> inline typename get_pointer_to_member_type<color_component, 1>::type reflecs::component_reflection::get_pointer_to_member<color_component, 1>() { return &color_component::g; }
+    template<> inline typename get_pointer_to_member_type<color_component, 2>::type reflecs::component_reflection::get_pointer_to_member<color_component, 2>() { return &color_component::b; }
+    template<> inline typename get_pointer_to_member_type<color_component, 3>::type reflecs::component_reflection::get_pointer_to_member<color_component, 3>() { return &color_component::a; }
 
     template<>
     struct component_handle<color_component>
@@ -189,12 +189,7 @@ using namespace utils::component_helpers;
     };
 #pragma endregion
 
-namespace
-{
-    using components = type_list<transform, velocity, color_component>;
-}
-
-void generateEntityWithRectangle(registry<components>& registry)
+void generateEntityWithRectangle(registry<transform, velocity, color_component>& registry)
 {
     static std::random_device randomEngine;
     static std::uniform_real_distribution<float> randomGenerator(0, 800);
@@ -213,7 +208,7 @@ void generateEntityWithRectangle(registry<components>& registry)
 
 int main(int argc, char* argv[])
 {
-    registry<components> registry;
+    registry<transform, velocity, color_component> registry;
 
     for (size_t i = 0; i < g_max_entities; ++i) 
     {

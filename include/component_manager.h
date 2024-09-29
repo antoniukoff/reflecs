@@ -3,7 +3,6 @@
 #include "Common.h"
 #include "utility.h"
 
-using namespace utils::component_helpers;
 
 /**
  * @class component_pool
@@ -47,7 +46,7 @@ template<typename C>
 class component_manager
 {
 private:
-	static constexpr size_t member_count = get_member_count<C>::count;
+	static constexpr size_t member_count = reflecs::component_reflection::get_member_count<C>::count;
 	component_pool<C, member_count> m_component_pool;
 	std::vector<component_instance> m_entities_to_components;
 
@@ -57,11 +56,11 @@ public:
 		: m_entities_to_components(g_max_entities)
 	{
 		size_t packed_component_size = 0;
-		utils::compile_loop::execute<member_count, count_component_size_wrapper>(this, packed_component_size);
+		reflecs::constexpr_loop::execute<member_count, count_component_size_wrapper>(this, packed_component_size);
 
 		size_t bytes = g_container_size * packed_component_size;
 		m_component_pool.buffer[0] = malloc(bytes);
-		utils::compile_loop::execute<member_count - 1, generate_buffers_wrapper>(this, m_component_pool.buffer, g_container_size);
+		reflecs::constexpr_loop::execute<member_count - 1, generate_buffers_wrapper>(this, m_component_pool.buffer, g_container_size);
 	}
 
 	/*
@@ -75,17 +74,20 @@ public:
 	component_instance& add(entity_id e_id, Args&& ... args)
 	{
 		/// Get the available instance in the pool
-		component_instance new_instance = m_component_pool.size;
+		component_instance instance_to_add = m_entities_to_components[e_id];
+		if (instance_to_add == 0)
+		{
+			instance_to_add = m_component_pool.size;
+			m_entities_to_components[e_id] = instance_to_add;
+			m_component_pool.size++;
+
+		}
 		C component = C(std::forward<Args>(args)...);
 
 		/// Add the component data to the member pools at their new instance
-		utils::compile_loop::execute<member_count, add_component_data_wrappper>(this, new_instance, component);
+		reflecs::constexpr_loop::execute<member_count, add_component_data_wrappper>(this, instance_to_add, component);
 
-		/// Update the 
-		m_entities_to_components[e_id] = new_instance;
-		m_component_pool.size++;
-
-		return new_instance;
+		return instance_to_add;
 	}
 
 	/**
@@ -115,9 +117,9 @@ public:
 	* @param component_instance instance of the component
 	*/
 	template<size_t index>
-	typename get_type<C, index>::type& get_member_buffer(entity_id component_instance)
+	auto& get_member_buffer(entity_id component_instance)
 	{
-		using data_type = typename get_type<C, index>::type;
+		using data_type = typename reflecs::component_reflection::get_type<C, index>::type;
 
 		std::array<data_type, g_container_size>& arr = *static_cast<std::array<data_type, g_container_size>*>(m_component_pool.buffer[index]);
 		return arr[component_instance];
@@ -137,7 +139,7 @@ public:
 
 		/// If exists, iterate over all members and reassign the last component data to the position of the removing instance  
 		component_instance instance_to_reassign = m_component_pool.size - 1;
-		utils::compile_loop::execute<member_count, remove_component_data_wrapper>(this, instance_to_remove, instance_to_reassign);
+		reflecs::constexpr_loop::execute<member_count, remove_component_data_wrapper>(this, instance_to_remove, instance_to_reassign);
 
 		/// Assign the entity's instance to 0
 		m_entities_to_components[e_id] = 0;
@@ -175,7 +177,7 @@ private:
 	template<size_t index>
 	void generate_buffers(void* buffer[], size_t num_elements)
 	{
-		using data_type = typename get_type<C, index>::type;
+		using data_type = typename reflecs::component_reflection::get_type<C, index>::type;
 		buffer[index + 1] = static_cast<data_type*>(buffer[index]) + num_elements;
 
 		char* previous_address = (char*)buffer[index];
@@ -207,7 +209,7 @@ private:
 	template<size_t index>
 	void count_component_size(size_t& bytes)
 	{
-		bytes += sizeof(typename get_type<C, index>::type);
+		bytes += sizeof(typename reflecs::component_reflection::get_type<C, index>::type);
 	}
 
 	/**
@@ -245,11 +247,11 @@ private:
 	template<size_t index>
 	void add_component_data(component_instance instance_to_add, C& component)
 	{
-		using data_type = typename get_type<C, index>::type;
+		using data_type = typename reflecs::component_reflection::get_type<C, index>::type;
 
 		std::array<data_type, g_container_size>& array_handle = *static_cast<std::array<data_type, g_container_size>*>(m_component_pool.buffer[index]);
 
-		array_handle[instance_to_add] = component.*get_pointer_to_member<C, index>();
+		array_handle[instance_to_add] = component.*reflecs::component_reflection::get_pointer_to_member<C, index>();
 	}
 
 	/**
@@ -273,7 +275,7 @@ private:
 	template<size_t index>
 	void remove_component_data(component_instance instance_to_remove, component_instance replacing_instance)
 	{
-		using data_type = typename get_type<C, index>::type;
+		using data_type = typename reflecs::component_reflection::get_type<C, index>::type;
 		std::array<data_type, g_container_size>& array_handle = *static_cast<std::array<data_type, g_container_size>*>(m_component_pool.buffer[index]);
 
 		array_handle[instance_to_remove] = array_handle[replacing_instance];

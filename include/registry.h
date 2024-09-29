@@ -4,8 +4,6 @@
 #include <mutex>
 #include <typeindex>
 
-template<typename ... Cs>
-class registry;
 
 /**
  * @class registry
@@ -15,7 +13,7 @@ class registry;
  * @tparam Cs Components
  */
 template<typename ... Cs>
-class registry<type_list<Cs...>>
+class registry
 {
 private:
 	static constexpr size_t m_registered_components = sizeof...(Cs); // Number of registered components
@@ -26,7 +24,6 @@ private:
 	std::queue<entity_id> m_available_ids; // Stores available ids
 	std::vector<bit_mask> m_entities_to_signatures; // Maps entities to their assigned components
 	std::unordered_map<bit_mask, std::vector<entity_id>> m_entities; // Maps component signatures to entities containing them them
-	std::mutex m_mut; // Mutex for thread safety
 
 public:
 
@@ -41,12 +38,11 @@ public:
 	}
 
 	/// Generates new Entity ID
-	std::optional<entity_id> create_entity()
+	entity_id create_entity()
 	{
-		std::lock_guard lock(m_mut);
 		if (m_available_ids.empty())
 		{
-			return std::nullopt;
+			return -1;
 		}
 
 		size_t new_id = m_available_ids.front();
@@ -60,8 +56,7 @@ public:
 	*/
 	void destroy(entity_id e)
 	{
-		std::lock_guard lock(m_mut);
-		utils::compile_loop::execute<m_registered_components, remove_entity_wrapper>(this, e, m_entities_to_signatures[e]);
+		reflecs::constexpr_loop::execute<m_registered_components, remove_entity_wrapper>(this, e, m_entities_to_signatures[e]);
 		m_available_ids.push(e);
 	}
 
@@ -94,19 +89,18 @@ public:
 	* @param args - Plain component data
 	*/
 	template<typename C, typename ... Args>
-	void add(std::optional<entity_id> e_id, Args&& ... args)
+	void add(entity_id e_id, Args&& ... args)
 	{
-		if (e_id == std::nullopt)
+		if (e_id == -1)
 		{
 			return;
 		}
-		entity_id id = e_id.value();
 
 		component_manager<C>& mgr = retrieve_pool<C>();
 
-		mgr.add(id, std::forward<Args>(args)...);
+		mgr.add(e_id, std::forward<Args>(args)...);
 
-		update_mask<C>(id, true);
+		update_mask<C>(e_id, true);
 	}
 
 	/**
@@ -161,7 +155,7 @@ private:
 	{
 		auto s = m_entities_to_signatures[e_id];
 		m_entities[s].erase(std::remove(m_entities[s].begin(), m_entities[s].end(), e_id), m_entities[s].end());
-		s.set(get_component_type_id<C, Cs...>(), add);
+		s.set(reflecs::type_utils::get_component_type_id<C, Cs...>(), add);
 		m_entities_to_signatures[e_id] = s;
 		m_entities[s].push_back(e_id);
 	}
@@ -176,7 +170,7 @@ private:
 	{
 		bit_mask signatures;
 
-		(signatures.set(get_component_type_id<Ts, Cs...>()), ...); // fold expresion since C++ 17; applies same operation for all template aruments 
+		(signatures.set(reflecs::type_utils::get_component_type_id<Ts, Cs...>()), ...); // fold expresion since C++ 17; applies same operation for all template aruments 
 		return signatures;
 	}
 
@@ -206,33 +200,6 @@ private:
 	}
 
 	/**
-	 * @brief Returns the index of the component in the component list
-	 * @tparam C Component
-	 * @tparam Head First component in the list
-	 * @tparam Tail Remaining components
-	 * @param index Index of the component
-	*/
-	template<typename C, typename Head, typename ... Tail>
-	constexpr size_t get_component_type_id(size_t index = 0)
-	{
-		if constexpr (std::is_same<C, Head>::value)
-		{
-			return index;
-		}
-		else
-		{
-			if constexpr (sizeof...(Tail) > 0)
-			{
-				return get_component_type_id<C, Tail...>(++index);
-			}
-			else
-			{
-				return -1; /// compile-error
-			}
-		}
-	}
-
-	/**
 	 * @brief Compile-time helper method to remove the entity from assigned pool
 	 * @tparam Position of a bit in a bit_mask
 	 * @param e_id Entity's ID
@@ -243,7 +210,7 @@ private:
 	{
 		if (bit_mask[index])
 		{
-			remove<component_type_at_index<index, Cs...>>(e_id);
+			remove<reflecs::type_utils::component_type_at_index<index, Cs...>>(e_id);
 		}
 	}
 
