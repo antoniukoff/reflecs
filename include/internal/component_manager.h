@@ -1,13 +1,15 @@
 #pragma once
 
-#include "Common.h"
+#include "common.h"
 #include "utility.h"
 
+template<typename T>
+class component_handle;
 
 /**
  * @class component_pool
  *
- * @brief Represents the compotent pool data
+ * @brief Represents the component pool data
  *
  * @tparam C Component type
  * @tparam elements Number of elements in the component
@@ -19,19 +21,9 @@ struct component_pool
 	void* buffer[elements];
 	~component_pool()
 	{
-		delete buffer[0];
+		free(buffer[0]);
 	}
 };
-
-/**
- * @class component_handle
- *
- * @brief This class is responsible for accessing the component fields
- *
- * @tparam C Component type
- */
-template<typename C>
-class component_handle;
 
 /**
  * @class component_manager
@@ -63,6 +55,14 @@ public:
 		reflecs::constexpr_loop::execute<member_count - 1, generate_buffers_wrapper>(this, m_component_pool.buffer, g_container_size);
 	}
 
+	~component_manager()
+	{
+		for (size_t i = 1; i < m_component_pool.size; ++i)
+		{
+			destroy_instance(i);
+		}
+	}
+
 	/*
 	* @brief Adds the component to the field pools
 	*
@@ -82,12 +82,25 @@ public:
 			m_component_pool.size++;
 
 		}
+		/// If throws check if you pass all the arguments and if the arguments in the correct order
 		C component = C(std::forward<Args>(args)...);
 
 		/// Add the component data to the member pools at their new instance
 		reflecs::constexpr_loop::execute<member_count, add_component_data_wrappper>(this, instance_to_add, component);
 
 		return instance_to_add;
+	}
+
+	bool contains(entity_id e_id)
+	{
+		return look_up(e_id) != 0;
+	}
+
+	void reset()
+	{
+		m_component_pool.size = 1;
+		m_entities_to_components.clear();
+		m_entities_to_components.resize(g_max_entities);
 	}
 
 	/**
@@ -107,7 +120,7 @@ public:
 	*/
 	component_handle<C> retrieve(entity_id e_id)
 	{
-		return component_handle<C>(*this, look_up(e_id));
+		return component_handle<C>(*this, e_id);
 	}
 
 	/*
@@ -117,12 +130,13 @@ public:
 	* @param component_instance instance of the component
 	*/
 	template<size_t index>
-	auto& get_member_buffer(entity_id component_instance)
+	auto& get_member_buffer(entity_id e_id)
 	{
+		component_instance instance = look_up(e_id);
 		using data_type = typename reflecs::component_reflection::get_type<C, index>::type;
 
-		std::array<data_type, g_container_size>& arr = *static_cast<std::array<data_type, g_container_size>*>(m_component_pool.buffer[index]);
-		return arr[component_instance];
+		data_type* arr = static_cast<data_type*>(m_component_pool.buffer[index]);
+		return arr[instance];
 	}
 
 	/**
@@ -134,6 +148,7 @@ public:
 	{
 		/// Find the component instance to remove
 		component_instance instance_to_remove = m_entities_to_components[e_id];
+
 		assert(instance_to_remove > 0 && "Entity is not assigned to this component");
 		assert(instance_to_remove < g_container_size && "instance is out of range");
 
@@ -168,6 +183,37 @@ public:
 private:
 
 #pragma region CompileHelpers
+
+	/**
+	 * @brief Calls destroy_member function *member count* times
+	 * @param instance Indexes into dense buffer
+	 */
+	void destroy_instance(component_instance instance)
+	{
+		auto destroy = [this, instance]<size_t... Is>(std::index_sequence<Is...>)
+		{
+			(destroy_member<Is>(instance), ...);
+		};
+		destroy(std::make_index_sequence<member_count>{});
+	}
+	
+
+	/**
+	 * @brief Call this function in the constructor to make sure the destructor is called in non-trivial types(vector, string)
+	 * @tparam index Used to retrieve member buffer of the component based on its declaration position within component struct
+	 * @param instance Indexes into a dense buffer
+	 */
+	template<size_t index>
+	void destroy_member(component_instance instance)
+	{
+		using data_type = typename reflecs::component_reflection::get_type<C, index>::type;
+		if constexpr (!std::is_trivially_destructible_v<data_type>)
+		{
+			data_type* arr = static_cast<data_type*>(m_component_pool.buffer[index]);
+			arr[instance].~data_type();
+		}
+	}
+
 	/**
 	 * @brief Generates field buffers for each member of the component
 	 * @tparam index Index of the component member
@@ -249,9 +295,9 @@ private:
 	{
 		using data_type = typename reflecs::component_reflection::get_type<C, index>::type;
 
-		std::array<data_type, g_container_size>& array_handle = *static_cast<std::array<data_type, g_container_size>*>(m_component_pool.buffer[index]);
+		void* address = (char*)m_component_pool.buffer[index] + sizeof(data_type) * instance_to_add;
 
-		array_handle[instance_to_add] = component.*reflecs::component_reflection::get_pointer_to_member<C, index>();
+		new(address)data_type(component.*reflecs::component_reflection::get_pointer_to_member<C, index>());
 	}
 
 	/**
@@ -276,7 +322,7 @@ private:
 	void remove_component_data(component_instance instance_to_remove, component_instance replacing_instance)
 	{
 		using data_type = typename reflecs::component_reflection::get_type<C, index>::type;
-		std::array<data_type, g_container_size>& array_handle = *static_cast<std::array<data_type, g_container_size>*>(m_component_pool.buffer[index]);
+		data_type* array_handle = static_cast<data_type*>(m_component_pool.buffer[index]);
 
 		array_handle[instance_to_remove] = array_handle[replacing_instance];
 	}

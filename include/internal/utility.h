@@ -1,7 +1,4 @@
 #pragma once
-#include <string>
-#include <iostream>
-#include "common.h"
 
 namespace reflecs
 {
@@ -110,3 +107,51 @@ namespace reflecs
 		}
 	}
 }
+
+#define ANNOTATE(ComponentName, MemberCount, ...)											\
+																								\
+		template<> struct reflecs::component_reflection::get_member_count<ComponentName>			\
+		{																						\
+			static const size_t count = MemberCount;											\
+		};																						\
+																								\
+		__VA_ARGS__																				\
+																								\
+
+#define DEFINE_COMPONENT_MEMBER(ComponentName, Index, MemberType, MemberName)				\
+		template<> struct reflecs::component_reflection::get_type<ComponentName, Index>			\
+		{																						\
+			using type = MemberType;															\
+		};																						\
+																								\
+	template<> inline typename reflecs::component_reflection::get_pointer_to_member_type<ComponentName, Index>::type   \
+							   reflecs::component_reflection::get_pointer_to_member<ComponentName, Index>()   \
+							   {																		    \
+									return &ComponentName::MemberName;									    \
+							   }																		    \
+																											\
+
+
+#define COMPONENT_HANDLE_ACCESSOR(index, type, name) \
+		inline type& name() { return mgr.get_member_buffer<index>(e_id); }\
+
+
+#define DEFINE_COMPONENT_HANDLE(ComponentType, ...)					   \
+	template<>                                                         \
+	class component_handle<ComponentType>                              \
+	{                                                                  \
+	public:                                                            \
+		component_manager<ComponentType>& mgr;                         \
+		entity_id e_id;	     										   \
+																	   \
+	public:                                                            \
+		component_handle() = default;                                  \
+																	   \
+		component_handle(component_manager<ComponentType>& mgr,        \
+						entity_id e_id)								   \
+			: mgr(mgr), e_id(e_id) {}								   \
+																	   \
+																	   \
+		__VA_ARGS__                                                    \
+	};
+

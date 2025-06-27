@@ -1,9 +1,8 @@
 #pragma once
+
 #include "component_manager.h"
 #include <queue>
-#include <mutex>
-#include <typeindex>
-
+#include <iostream>
 
 /**
  * @class registry
@@ -19,14 +18,15 @@ private:
 	static constexpr size_t m_registered_components = sizeof...(Cs); // Number of registered components
 
 	using bit_mask = std::bitset<m_registered_components>;
+	using signature_map = std::unordered_map<bit_mask, std::vector<entity_id>>;
 
+private:
 	std::tuple<component_manager<Cs>...> m_component_pools; // Tuple of component pools
 	std::queue<entity_id> m_available_ids; // Stores available ids
 	std::vector<bit_mask> m_entities_to_signatures; // Maps entities to their assigned components
-	std::unordered_map<bit_mask, std::vector<entity_id>> m_entities; // Maps component signatures to entities containing them them
+	signature_map m_entities; // Maps component signatures to entities containing them them
 
 public:
-
 	registry()
 		: m_entities_to_signatures(g_max_entities)
 	{
@@ -42,7 +42,7 @@ public:
 	{
 		if (m_available_ids.empty())
 		{
-			return -1;
+			return g_max_entities;
 		}
 
 		size_t new_id = m_available_ids.front();
@@ -101,6 +101,28 @@ public:
 		mgr.add(e_id, std::forward<Args>(args)...);
 
 		update_mask<C>(e_id, true);
+	}
+
+	void reset()
+	{
+		m_entities_to_signatures.clear();
+		m_entities_to_signatures.resize(g_max_entities);
+		// Populate the queue with entityIDs
+		std::queue<entity_id> new_queue;
+		for (size_t i = 0; i < g_max_entities; ++i)
+		{
+			new_queue.push(i);
+		}
+		std::swap(m_available_ids, new_queue);
+		m_entities.clear();
+		reflecs::constexpr_loop::execute<m_registered_components, reset_wrapper>(this);
+	}
+
+	template<typename C>
+	bool has(entity_id e_id)
+	{
+		component_manager<C>& mgr = retrieve_pool<C>();
+		return mgr.contains(e_id);
 	}
 
 	/**
@@ -224,6 +246,32 @@ private:
 		void operator()(registry* parent, entity_id e_id, bit_mask& bit_mask)
 		{
 			parent->remove_entity_from_pool<index>(e_id, bit_mask);
+		}
+	};
+
+	/**
+	 * @brief Compile-time helper method to remove the entity from assigned pool
+	 * @tparam Position of a bit in a bit_mask
+	 * @param e_id Entity's ID
+	 * @param bit_mask Entity's bit mask
+	*/
+	template<size_t index>
+	void reset_pools()
+	{
+		auto& component_pool = std::get<index>(m_component_pools);
+		component_pool.reset();
+	}
+
+	/**
+	 * @brief Dummy class with a defined functor to invoke the remove_entity_from_pool()
+	 * @tparam index Position of a bit in a bit_mask
+	*/
+	template<size_t index>
+	struct reset_wrapper
+	{
+		void operator()(registry* parent)
+		{
+			parent->reset_pools<index>();
 		}
 	};
 };
