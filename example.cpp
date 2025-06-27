@@ -1,226 +1,136 @@
 #include <random>
-#include "include/registry.h"
-
-using namespace reflecs::component_reflection;
+#include "include/reflecs.h"
+#include <algorithm>
+#include <string>
+#include <thread>
 
 #pragma region HOW TO DEFINE A COMPONENT
 
-    struct vec2
-    {
-        float x = 0.0f;
-        float y = 0.0f;
-    };
+struct vec2
+{
+    float x = 0.0f;
+    float y = 0.0f;
+};
 
-    /// Define a component struct
-    struct transform
-    {
-        transform(float x, float y, float w, float h)
-            : x(x)
-            , y(y)
-            , w(w)
-            , h(h)
-        {}
+/// Define a component struct
+struct transform
+{
+    float x, y, w, h;
+};
 
-        float x, y, w, h;
-    };
+ANNOTATE(transform,
+    4,
+    DEFINE_COMPONENT_MEMBER(transform, 0, float, x)
+    DEFINE_COMPONENT_MEMBER(transform, 1, float, y)
+    DEFINE_COMPONENT_MEMBER(transform, 2, float, w)
+    DEFINE_COMPONENT_MEMBER(transform, 3, float, h)
+)
 
-    /// IMPORTANT: The following specializations are required for the component helpers to work
+DEFINE_COMPONENT_HANDLE(transform,
+    COMPONENT_HANDLE_ACCESSOR(0, float, x)
+    COMPONENT_HANDLE_ACCESSOR(1, float, y)
+    COMPONENT_HANDLE_ACCESSOR(2, float, w)
+    COMPONENT_HANDLE_ACCESSOR(3, float, h)
+)
+/// Other components can be defined in a similar way
+struct velocity
+{
+    float x, y;
+};
 
-    template<> struct get_member_count<transform>
-    {
-        static const int count = 4; /// Number of fields in the component
-    };
+ANNOTATE(velocity,
+    2,
+    DEFINE_COMPONENT_MEMBER(velocity, 0, float, x)
+    DEFINE_COMPONENT_MEMBER(velocity, 1, float, y)
+)
 
-    /// Partialy pecialize the get_type struct for all the members of the component
-	/// The first template parameter is the component type and the second is the index of the member
-	/// type is the type of the member at the specified index
-	/// e.g. get_type<transform, 0>::type is x which is a float
+DEFINE_COMPONENT_HANDLE(velocity,
+    COMPONENT_HANDLE_ACCESSOR(0, float, x)
+    COMPONENT_HANDLE_ACCESSOR(1, float, y)
+)
 
-    template<> struct get_type<transform, 0>
-    {
-        using type = float;
-    };
+struct tag
+{
+    std::string tag;
+};
 
-    template<> struct get_type<transform, 1>
-    {
-        using type = float;
-    };
+ANNOTATE(tag,
+    1,
+    DEFINE_COMPONENT_MEMBER(tag, 0, std::string, tag)
+)
 
-    template<> struct get_type<transform, 2>
-    {
-        using type = float;
-    };
+DEFINE_COMPONENT_HANDLE(tag,
+    COMPONENT_HANDLE_ACCESSOR(0, std::string, tag)
+)
 
-    template<> struct get_type<transform, 3>
-    {
-        using type = float;
-    };
-
-    /// Specialize the get_pointer_to_member function for all the members of the component
-
-    template<> inline typename get_pointer_to_member_type<transform, 0>::type reflecs::component_reflection::get_pointer_to_member<transform, 0>() { return &transform::x; }
-    template<> inline typename get_pointer_to_member_type<transform, 1>::type reflecs::component_reflection::get_pointer_to_member<transform, 1>() { return &transform::y; }
-    template<> inline typename get_pointer_to_member_type<transform, 2>::type reflecs::component_reflection::get_pointer_to_member<transform, 2>() { return &transform::w; }
-    template<> inline typename get_pointer_to_member_type<transform, 3>::type reflecs::component_reflection::get_pointer_to_member<transform, 3>() { return &transform::h; }
-
-	/// IMPORTANT: The following specialization for the component_handle struct is required to get the member handles
-
-    template<>
-    struct component_handle<transform>
-    {
-        component_manager<transform>& pool;
-		component_instance instance; /// The instance of the component for the entity
-        
-		/// NOTE: component_manager needs to be passed as a reference to the constructor
-        component_handle(component_manager<transform>& transform_pool, component_instance instance)
-            : pool(transform_pool)
-            , instance(instance)
-        {}
-        
-		/// Define methods to access the members of the component
-		/// The get_member_buffer function is used to get the buffer of the member at the specified index
-        inline float& x() { return pool.get_member_buffer<0>(instance); }
-        inline float& y() { return pool.get_member_buffer<1>(instance); }
-        inline float& w() { return pool.get_member_buffer<2>(instance); }
-        inline float& h() { return pool.get_member_buffer<3>(instance); }
-    };
-
-	/// Other components can be defined in a similar way
-    struct velocity
-    {
-        velocity(float x, float y)
-            : x(x)
-            , y(y)
-        {}
-
-        float x, y;
-    };
-
-    template<> struct get_member_count<velocity>
-    {
-        static const int count = 2;
-    };
-
-    template<> struct get_type<velocity, 0>
-    {
-        using type = float;
-    };
-
-    template<> struct get_type<velocity, 1>
-    {
-        using type = float;
-    };
-
-    template<> inline typename get_pointer_to_member_type<velocity, 0>::type reflecs::component_reflection::get_pointer_to_member<velocity, 0>() { return &velocity::x; }
-    template<> inline typename get_pointer_to_member_type<velocity, 1>::type reflecs::component_reflection::get_pointer_to_member<velocity, 1>() { return &velocity::y; }
-
-    template<>
-    struct component_handle<velocity>
-    {
-        component_manager<velocity>& pool;
-        component_instance instance;
-
-        component_handle(component_manager<velocity>& transform_pool, component_instance instance)
-            : pool(transform_pool)
-            , instance(instance)
-        {}
-
-        inline float& x() { return pool.get_member_buffer<0>(instance); }
-        inline float& y() { return pool.get_member_buffer<1>(instance); }
-    };
-
-    struct color_component
-    {
-        color_component(char r, char g, char b, char a)
-            : r(r)
-            , g(g)
-            , b(b)
-            , a(a)
-        {}
-
-        char r, g, b, a;
-    };
-
-    template<> struct get_member_count<color_component>
-    {
-        static const int count = 4;
-    };
-
-    template<> struct get_type<color_component, 0>
-    {
-        using type = char;
-    };
-
-    template<> struct get_type<color_component, 1>
-    {
-        using type = char;
-    };
-
-    template<> struct get_type<color_component, 2>
-    {
-        using type = char;
-    };
-
-    template<> struct get_type<color_component, 3>
-    {
-        using type = char;
-    };
-
-    template<> inline typename get_pointer_to_member_type<color_component, 0>::type reflecs::component_reflection::get_pointer_to_member<color_component, 0>() { return &color_component::r; }
-    template<> inline typename get_pointer_to_member_type<color_component, 1>::type reflecs::component_reflection::get_pointer_to_member<color_component, 1>() { return &color_component::g; }
-    template<> inline typename get_pointer_to_member_type<color_component, 2>::type reflecs::component_reflection::get_pointer_to_member<color_component, 2>() { return &color_component::b; }
-    template<> inline typename get_pointer_to_member_type<color_component, 3>::type reflecs::component_reflection::get_pointer_to_member<color_component, 3>() { return &color_component::a; }
-
-    template<>
-    struct component_handle<color_component>
-    {
-        component_manager<color_component>& pool;
-        component_instance instance;
-
-        component_handle(component_manager<color_component>& transform_pool, component_instance instance)
-            : pool(transform_pool)
-            , instance(instance)
-        {}
-
-        inline char& r() { return pool.get_member_buffer<0>(instance); }
-        inline char& g() { return pool.get_member_buffer<1>(instance); }
-        inline char& b() { return pool.get_member_buffer<2>(instance); }
-        inline char& a() { return pool.get_member_buffer<3>(instance); }
-    };
 #pragma endregion
 
-void generateEntityWithRectangle(registry<transform, velocity, color_component>& registry)
-{
-    static std::random_device randomEngine;
-    static std::uniform_real_distribution<float> randomGenerator(0, 800);
-
-    static std::random_device randomEngine1;
-    static std::uniform_int_distribution<int> randomGenerator1(0, 255);
-
-    int randPosX = std::clamp(randomGenerator(randomEngine), 0.0f, 800.0f - 50.0f);
-    int randPosY = std::clamp(randomGenerator(randomEngine), 0.0f, 600.0f - 50.0f);
-
-    auto eID = registry.create_entity();
-    registry.add<transform>(eID, randPosX, randPosY, 50, 50);
-    registry.add<velocity>(eID, randPosX, randPosY);
-    registry.add<color_component>(eID, randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1), randomGenerator1(randomEngine1));
-}
+#pragma region ECS USAGE
 
 int main(int argc, char* argv[])
 {
-    registry<transform, velocity, color_component> registry;
+    //////////////////////////
+    /// Creating a registry
+    //////////////////////////
 
-    for (size_t i = 0; i < g_max_entities; ++i) 
+    using scene_registry = registry<transform, velocity, tag>;
+    scene_registry registry;
+
     {
-        generateEntityWithRectangle(registry);
+        std::random_device randomEngine;
+        std::uniform_real_distribution<float> randomGenerator(0.0f, 800.0f);
+
+        for (size_t i = 0; i < g_max_entities; ++i)
+        {
+            /// Random values to populate components
+            float randPosX = std::clamp(randomGenerator(randomEngine), 0.0f, 800.0f - 50.0f);
+            float randPosY = std::clamp(randomGenerator(randomEngine), 0.0f, 600.0f - 50.0f);
+
+            float randVelX = std::clamp(randomGenerator(randomEngine), 5.0f, 10.0f);
+            float randVelY = std::clamp(randomGenerator(randomEngine), 5.0f, 10.0f);
+
+            //////////////////////////////////
+            /// Creating entity ID
+            //////////////////////////////////
+
+            auto eID = registry.create_entity();
+
+            //////////////////////////////////
+            /// Adding Component to the entity
+            //////////////////////////////////
+
+            registry.add<transform>(eID, randPosX, randPosY, 50.0f, 50.0f); /// Transform(x - randPosX, y = randPosY, w = 50.0f, h - 50.0f)
+            registry.add<velocity>(eID, randVelX, randVelY); /// Velocity(x - randPosX, y - randPosY)
+            registry.add<tag>(eID, std::string("Entity - " + std::to_string(eID))); /// Tag(Entity - i)
+
+        }
     }
-    
+    auto print_stats = [](
+        component_handle<transform>& transform,
+        component_handle<velocity>& velocity,
+        component_handle<tag>& tag) -> void
+        {
+            printf("%s's components\n", tag.tag().c_str());
+            printf("    Transform component(x = %f, y = %f, w = %f, h = %f)\n", transform.x(), transform.y(), transform.w(), transform.h());
+            printf("    Velocity component(x = %f, y = %f)\n", velocity.x(), velocity.y());
+        };
+
     bool running = true;
 
-    while (running) 
+    while (running)
     {
-        registry.for_each<transform, velocity>([](entity_id _, component_handle<transform> transform, component_handle<velocity> velocity)
+        /////////////////////////////////
+        ///// Batch processing
+        /////////////////////////////////
+
+        registry.for_each<transform, velocity, tag>([print_stats](
+            entity_id _,
+            component_handle<transform> transform,
+            component_handle<velocity> velocity,
+            component_handle<tag> tag)
             {
+                print_stats(transform, velocity, tag);
+
                 velocity.x() *= 0.98f;
                 velocity.y() *= 0.98f;
                 transform.x() += velocity.x();
@@ -245,9 +155,15 @@ int main(int argc, char* argv[])
                     transform.y() = 600 - transform.h();
                     velocity.y() = -velocity.y(); // Reverse vertical direction
                 }
+                printf("\n");
+
             });
 
-		/// Your rendering code here
+        printf("\n\n");
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        /// Your rendering code here
     }
     return 0;
 }
+
+#pragma endregion
